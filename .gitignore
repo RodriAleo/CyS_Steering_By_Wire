@@ -6,7 +6,7 @@ AI_HANDOFF.md
 Simulink/run_case.m
 Simulink/local_runs/
 python_sim/
-AI_Analsys/
+AI_Analysis/
 Informe_CyS_SteeringByWire/build/
 Informe_CyS_SteeringByWire/*.aux
 Informe_CyS_SteeringByWire/*.fdb_latexmk
