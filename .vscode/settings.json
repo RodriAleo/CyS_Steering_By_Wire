@@ -1,0 +1,14 @@
+{
+  "latex-workshop.latex.outDir": "%DIR%",
+  "latex-workshop.latex.auxDir": "%DIR%/build",
+  "latex-workshop.latex.autoBuild.run": "onSave",
+  "latex-workshop.latex.recipes": [
+    {
+      "name": "latexmk (project rc)",
+      "tools": [
+        "latexmk_rconly"
+      ]
+    }
+  ],
+  "latex-workshop.latex.recipe.default": "first"
+}

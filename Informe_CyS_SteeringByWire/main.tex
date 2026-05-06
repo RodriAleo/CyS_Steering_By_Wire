@@ -558,6 +558,98 @@ Sin embargo, al encontrarse en velocidad, entra en efecto el torque de autoaline
     \label{fig:error_estado_estacionario}
 \end{figure}
 
+\subsubsection{Implementación propuesta de $T_a$ por rueda}
+
+Del análisis del modelo dinámico se concluye que la variable $\delta$ representa el comportamiento de una rueda delantera representativa, mientras que la cremallera recibe el efecto conjunto de ambas ruedas mediante los términos duplicados en $K_f$. En consecuencia, resulta más consistente modelar el torque autoalineante $T_a$ \textbf{por rueda}, suponiendo que la otra rueda presenta el mismo ángulo y el mismo comportamiento.
+
+La siguiente función de MATLAB implementa esta idea. El modelo bicicleta se utiliza para obtener el ángulo de deriva delantero $\alpha_f$, pero la fuerza lateral y el torque autoalineante se calculan para una única rueda delantera:
+
+\begin{verbatim}
+function [Ta, alpha_f, vy, r] = CalculoTaPorRueda(delta, vel_kmh)
+% CalculoTaPorRueda
+% Calcula el torque autoalineante por rueda delantera,
+% suponiendo que ambas ruedas delanteras tienen el mismo
+% angulo y comportamiento.
+%
+% Entradas:
+%   delta    [rad]   angulo de rueda delantera
+%   vel_kmh  [km/h]  velocidad vehicular
+%
+% Salidas:
+%   Ta       [N*m]   torque autoalineante por rueda
+%   alpha_f  [rad]   slip angle delantero
+%   vy       [m/s]   velocidad lateral CG (steady-state)
+%   r        [rad/s] yaw rate (steady-state)
+
+    % Parametros vehiculo
+    m = 1400;
+    g = 9.80665;
+    L = 2.70;
+    a = 1.20;
+    b = L - a;
+
+    % Rigideces por eje para el modelo bicicleta
+    Cf_axle = 8e4;   % [N/rad]
+    Cr_axle = 8e4;   % [N/rad]
+
+    % Parametros de saturacion / trail
+    mu = 0.90;
+    t0 = 0.08;       % [m]
+    kAlpha = 8.0;
+    Vt = 40;         % [m/s]
+
+    Vx = vel_kmh / 3.6;
+
+    if Vx < 0.5
+        Ta = 0;
+        alpha_f = 0;
+        vy = 0;
+        r = 0;
+        return
+    end
+
+    Vx_eff = max(Vx, 0.5);
+
+    % Modelo bicicleta en regimen estacionario
+    M11 = Cf_axle + Cr_axle;
+    M12 = m * Vx_eff^2 + Cf_axle * a - Cr_axle * b;
+
+    M21 = a * Cf_axle - b * Cr_axle;
+    M22 = a^2 * Cf_axle + b^2 * Cr_axle;
+
+    rhs1 = Cf_axle * Vx_eff * delta;
+    rhs2 = a * Cf_axle * Vx_eff * delta;
+
+    M = [M11, M12; M21, M22];
+    rhs = [rhs1; rhs2];
+
+    sol = M \ rhs;
+    vy = sol(1);
+    r = sol(2);
+
+    % Slip delantero comun a ambas ruedas
+    alpha_f = delta - (vy + a * r) / Vx_eff;
+
+    % Conversion a magnitudes por rueda
+    Cf_wheel = Cf_axle / 2;
+    Fzf_wheel = ((b / L) * m * g) / 2;
+    Fy_max_wheel = mu * Fzf_wheel;
+
+    % Fuerza lateral por rueda con saturacion suave
+    Fy_lin_wheel = Cf_wheel * alpha_f;
+    Fy_wheel = Fy_max_wheel * tanh(Fy_lin_wheel / Fy_max_wheel);
+
+    % Trail efectivo
+    trail = t0 * exp(-kAlpha * abs(alpha_f)) * ...
+            (1 / (1 + (Vx_eff / Vt)^2));
+
+    % Torque autoalineante por rueda
+    Ta = -Fy_wheel * trail;
+end
+\end{verbatim}
+
+Con esta reformulación, el torque autoalineante aplicado en la ecuación de la rueda resulta coherente con una única rueda delantera. Si ambas ruedas se comportan simétricamente, entonces la otra rueda tendrá el mismo valor de torque autoalineante.
+
 \subsubsection{Controlador LQR con acción integral}
 
 Para eliminar el error en estado estacionario frente a referencias constantes se introduce la variable de estado
@@ -644,6 +736,24 @@ u(t)=-K\cdot x(t)-K_{i}\cdot z(t)
 
 Notar que la referencia ha sido quitada de la ley de control ya que se encuentra implícita dentro de la variable de estado $z(t)$.
 
+
+\subsection*{Fuentes utilizadas para el modelado del torque autoalineante $T_a$}
+
+Para revisar el orden de magnitud y la forma funcional del torque autoalineante se utilizaron las siguientes fuentes externas:
+
+\begin{itemize}
+    \item \textbf{Georg Rill, \textit{First Order Tire Dynamics}}. Disponible en: \url{https://www.researchgate.net/publication/317036997_First_Order_Tire_Dynamics}. De esta fuente se tomó la relación física básica entre torque autoalineante y fuerza lateral, expresada como $T_S = c_o F_y$, donde $c_o$ representa el \textit{pneumatic trail}. Esta idea se utilizó como base para escribir $T_a$ como producto entre fuerza lateral y brazo efectivo del neumático, con signo restaurador.
+
+    \item \textbf{ScienceDirect Topics, \textit{Aligning Torque}}. Disponible en: \url{https://www.sciencedirect.com/topics/engineering/aligning-torque}. De esta fuente se extrajo el comportamiento cualitativo esperado del torque autoalineante en neumáticos reales: crecimiento aproximadamente lineal para ángulos de deriva pequeños, aparición de un máximo a bajos ángulos de deriva y disminución posterior al aumentar el deslizamiento lateral. También se utilizó para justificar que el \textit{pneumatic trail} disminuye cuando crece el ángulo de deriva.
+
+    \item \textbf{ScienceDirect Topics, \textit{Brush Model}}. Disponible en: \url{https://www.sciencedirect.com/topics/engineering/brush-model}. De esta fuente se tomó la interpretación mecánica del origen del torque autoalineante mediante la distribución no simétrica de esfuerzos en la huella de contacto, y la observación de que un valor más realista del \textit{trail} a bajo deslizamiento puede aproximarse como $t \approx 0.5\,a$, siendo $a$ la semilongitud de la huella. Este criterio se utilizó como referencia para contrastar el valor de \textit{trail} adoptado en el modelo simplificado.
+
+    \item \textbf{Turan Alp Arslan et al., \textit{Investigation of the Effects of Axle Load on Tyre Behaviour in Vehicles}}. Disponible en: \url{https://www.researchgate.net/publication/365781200_Investigation_of_the_Effects_of_Axle_Load_on_Tyre_Behaviour_in_Vehicles}. De este trabajo se tomaron supuestos geométricos y de carga para un neumático individual 205/55R16, en particular el uso de una muestra de una sola rueda, la presión de inflado del orden de $220.632\ \mathrm{kPa}$ y la relación entre ancho efectivo de huella y ancho del neumático. Estos datos se usaron en el análisis en Python para estimar una longitud de huella razonable por rueda y, a partir de ella, un orden de magnitud plausible del \textit{pneumatic trail}.
+
+    \item \textbf{Hsu, Laws y Gerdes, \textit{Estimation of Tire Slip Angle and Friction Limits Using Steering Torque}}. Disponible en: \url{https://www.researchgate.net/publication/224603533_Estimation_of_Tire_Slip_Angle_and_Friction_Limits_Using_Steering_Torque}. De esta referencia se utilizó la idea de que la información del torque de dirección está fuertemente vinculada con la evolución del \textit{pneumatic trail}, y que la caída de dicho \textit{trail} es un indicador físicamente consistente del acercamiento a la saturación lateral del neumático.
+\end{itemize}
+
+En conjunto, estas fuentes se utilizaron para justificar que el análisis del torque autoalineante debía realizarse \textbf{por rueda}, suponiendo comportamiento simétrico de ambas ruedas delanteras, y que el modelo debía preservar tanto la dependencia con la fuerza lateral como la disminución del \textit{trail} a medida que aumenta el ángulo de deriva.
 
 
 

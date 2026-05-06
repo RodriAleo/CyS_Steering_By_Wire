@@ -3,3 +3,15 @@ Proyectos de compañeros
 Simulink/Archivos viejos
 Simulink/slprj
 AI_HANDOFF.md
+Simulink/run_case.m
+Simulink/local_runs/
+python_sim/
+Informe_CyS_SteeringByWire/build/
+Informe_CyS_SteeringByWire/*.aux
+Informe_CyS_SteeringByWire/*.fdb_latexmk
+Informe_CyS_SteeringByWire/*.fls
+Informe_CyS_SteeringByWire/*.log
+Informe_CyS_SteeringByWire/*.out
+Informe_CyS_SteeringByWire/*.synctex.gz
+*.asv
+*.slxc
