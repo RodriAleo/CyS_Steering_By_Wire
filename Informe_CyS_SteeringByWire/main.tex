@@ -464,29 +464,27 @@ u(t)\;=\;-K\,x(t)\;+\;k_{r}\,r(t)
 donde $K$ se obtiene resolviendo la ecuación de Riccati asociada y $k_{r}$ ajusta la ganancia de la referencia.  
 Se ha preferido LQR sobre un controlador PID por su capacidad de penalizar simultáneamente desviaciones de estado y esfuerzo de control, lo que facilita limitar la saturación del actuador y garantizar un compromiso óptimo entre desempeño transitorio y magnitud de la señal de control.
 
-Lo realmente importante de este método es definir correctamente las matrices $Q_x$ y $Q_u$. Normalmente, a $Q_x$ se la define teniendo en cuenta el límite máximo de cada variable de estado; pero en este caso, resulta más interesante limitar la corriente $i_m(t)$ y el ángulo de las ruedas delanteras $\delta(t)$. La primera penalización es útil para evitar picos elevados de corriente durante tiempos prolongados que puedan dañar al motor por sobrecalentamiento, y la segunda, es útil para limitar el exceso de desplazamientos en las ruedas, lo que haría llegar al sistema mecánico a sus límites físicos. Notar que estas son las variables seleccionadas como salidas de desempeño en la ecuación \ref{eq:salida_performance}. Para esto, se utiliza la regla de Bryson adaptable, donde se arma en primera instancia una matriz $Q_p$ que contenga los límites de estas variables seleccionadas.
+Lo realmente importante de este método es definir correctamente las matrices $Q_x$ y $Q_u$. En el modelo implementado, la salida de desempeño utilizada para el LQR es el ángulo de las ruedas delanteras:
 
 \begin{equation}
-Q_{p} =
-\begin{bmatrix}
-\alpha_{i}/i_{m-max}^2 & 0 \\
-0 & \alpha_{\delta}/\delta_{max}^2\\
-\end{bmatrix}
+y_p(t)=C_p\,x(t)=\delta(t).
 \end{equation}
 
-Luego, se puede calcular la matriz $Q_x$ de orden 7:
+ La matriz $Q_x$ se construye a partir de la regla de Bryson aplicada a $\delta(t)$:
 
 \begin{equation}
-Q_{x} = C_p^T \cdot Q_p \cdot C_p
+Q_y=\frac{\alpha_{\delta}}{\delta_{max}^{2}},
+\qquad
+Q_x=C_p^T\,Q_y\,C_p.
 \end{equation}
 
-Además, se define $Q_u$ como:
+La entrada de control corresponde a la tensión aplicada al motor, por lo que $Q_u$ se define como:
 
 \begin{equation}
 Q_{u} = \frac{\rho}{V_{m-max}^2}
 \end{equation}
 
-Los coeficientes $\alpha_{i}$, $\alpha_{\delta}$ y $\rho$ se eligen para equilibrar el desempeño transitorio y magnitud de $u(t)$: aumentando cada $\alpha$ se incrementa la rigidez en esa variable, y aumentando $\rho$ se penaliza más el esfuerzo de control. En la tabla \ref{tab:valores_maximos_lqr} se definen los valores máximos para las variables de importancia en el control LQR.
+Los coeficientes $\alpha_{\delta}$ y $\rho$ se eligen para equilibrar desempeño transitorio y magnitud de $u(t)$. Aumentar $\alpha_{\delta}$ exige con mayor rigidez el seguimiento de $\delta(t)$; aumentar $\rho$ penaliza más el uso de tensión del motor y suaviza la acción de control. En la tabla \ref{tab:valores_maximos_lqr} se definen los valores máximos usados para normalizar estas magnitudes.
 
 \begin{table}[H]
 \small
@@ -495,62 +493,29 @@ Los coeficientes $\alpha_{i}$, $\alpha_{\delta}$ y $\rho$ se eligen para equilib
 \label{tab:valores_maximos_lqr}
 \begin{tabular}{c c}
 \toprule
-\textbf{Variable} & \textbf{Valor máximo recomendado} \\
+\textbf{Variable} & \textbf{Valor máximo} \\
 \midrule
-$i_{m-max}$ & $60 \; \mathrm{A}$ \\
-$\delta_{max}$ & $0.31 \; \mathrm{rad} \; = 35^\circ$ \\
+$\delta_{max}$ & $0.61 \; \mathrm{rad} \; = 35^\circ$ \\
 $V_{m-max}$ & $48 \; \mathrm{V}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Una vez definidas estas matrices, puede calcularse $K$ con la función \texttt{lqr(A, Bc, Qx, Qu)} de MATLAB, y la ganancia de referencia se calcula como:
+Luego de realizada varias pruebas, se optó por darle al los coeficientes los siguientes valores: $\alpha_{\delta}=1$ y $\rho=0.25$. Una vez definidas estas matrices, la ganancia de realimentación de estados se obtiene como:
 
 \begin{equation}
-k_{r} = -\bigl(C_{p} \cdot (A - B_{c} \cdot K)^{-1} \cdot B_{c}\bigr)^{-1}
+K_{\mathrm{lqr}}=\mathrm{lqr}(A,B_c,Q_x,Q_u).
 \end{equation}
 
-A continuación se muestran unas imágenes del control LQR final, luego de probar distintos valores para los parámetros $\alpha$ y $\rho$:
+Para seguimiento de referencia con el LQR puro se utiliza una ganancia de precompensación:
 
-%\begin{figure}[H]
-%    \centering
-%    \includegraphics[width=0.7\linewidth]{figs/lqr_ref_escalon_delta_parametros_iniciales.png}
-%    \caption{$\alpha_{i}=\alpha_{\delta}=\rho=1$}
-%\end{figure}
+\begin{equation}
+k_{r} = -\bigl(C_{p} \cdot (A - B_{c} \cdot K_{\mathrm{lqr}})^{-1} \cdot B_{c}\bigr)^{-1}.
+\end{equation}
 
-\begin{figure}[H]
-  \centering
-  \begin{subfigure}[b]{0.48\linewidth}
-    \centering
-    \includegraphics[width=\linewidth]{figs/lqr_ref_escalon_delta_parametros_iniciales.png}
-    \caption{$\alpha_{i}=\alpha_{\delta}=\rho=1$}
-    \label{fig:lqr_basico}
-  \end{subfigure}
-  \hfill
-  \begin{subfigure}[b]{0.48\linewidth}
-    \centering
-    \includegraphics[width=\linewidth]{figs/lqr_ref_escalon_delta_parametros_finales.png}
-    \caption{$\alpha_{i}=0.01 , \;\alpha_{\delta}=10, \;\rho=0.5$}
-    \label{fig:lqr_modificado}
-  \end{subfigure}
-  \caption{Comparación en la respuesta al variar los parámetros}
-  \label{fig:lqr_comparacion_parametros}
-\end{figure}
+Esta versión permite analizar la respuesta inicial del sistema y sirve como base para el controlador aumentado con acción integral.
 
-En la figura \ref{fig:lqr_modificado} puede verse cómo al ajustar los parámetros se logra una respuesta 10 veces más rápida a la que se obtiene en \ref{fig:lqr_basico} con los parámetros en $1$.
-
-En esta aplicación en particular, es necesario que la dirección de las ruedas responda de forma veloz a los comandos introducidos mediante el volante. El caso particular de la figura \ref{fig:lqr_comparacion_parametros} se da en una situación de estacionamiento en la que el vehículo se encuentra detenido y realiza amplias rotaciones ($>30^\circ$) de los neumáticos delanteros.
-
-Sin embargo, al encontrarse en velocidad, entra en efecto el torque de autoalineamiento $T_a$. Este se analizará con mayor detenimiento en la sección *INSERTAR SECCION DE PERTURBACIONES*, pero por ahora será considerado como una perturbación constante. Al querer realizar un giro de $10^\circ$ en velocidad, entrará en efecto esta perturbación, lo que genera un error de estado estacionario, como puede verse en la figura \ref{fig:error_estado_estacionario}.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.5\linewidth]{figs/error_estado_estacionario.png}
-    \caption{Presencia de error de estado estacionario}
-    \label{fig:error_estado_estacionario}
-\end{figure}
-
-\subsubsection{Implementación propuesta de $T_a$ por rueda}
+\subsubsection{Implementación propuesta de \texorpdfstring{$T_a$}{Ta} por rueda}
 
 Del análisis del modelo dinámico se concluye que la variable $\delta$ representa el comportamiento de una rueda delantera representativa, mientras que la cremallera recibe el efecto conjunto de ambas ruedas mediante los términos duplicados en $K_f$. En consecuencia, resulta más consistente modelar el torque autoalineante $T_a$ \textbf{por rueda}, suponiendo que la otra rueda presenta el mismo ángulo y el mismo comportamiento.
 
@@ -710,6 +675,7 @@ Q_{y}=\frac{\alpha_{\delta}}{\delta_{\max}^{2}},
 Q_{u}=\frac{\rho}{V_{m\text{-max}}^{2}},
 \end{equation}
 donde $\alpha_{\delta}$ y $\alpha_{z}$ ponderan la penalización sobre $\delta$ y sobre la integral del error.
+En el modelo de simulación se utilizaron $\alpha_{\delta}=8$, $\alpha_z=5$, $z_{max}=0.04$ y $\rho=0.08$.
 
 La ganancia aumentada se obtiene en MATLAB con
 \begin{equation}
@@ -728,6 +694,39 @@ u(t)=-K\cdot x(t)-K_{i}\cdot z(t)
 
 Notar que la referencia ha sido quitada de la ley de control ya que se encuentra implícita dentro de la variable de estado $z(t)$.
 
+\subsection{Resultados}
+
+La figura \ref{fig:lqr_comparacion_parametros} muestra el efecto de modificar los pesos del LQR sobre la respuesta de $\delta(t)$. Al aumentar la penalización sobre el error de posición angular y ajustar la penalización sobre la tensión de motor, el sistema alcanza la referencia con mayor rapidez, aunque el esfuerzo de control queda limitado por la saturación de $48\ \mathrm{V}$ del actuador.
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[b]{0.48\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figs/lqr_ref_escalon_delta_parametros_iniciales.png}
+    \caption{Ajuste inicial}
+    \label{fig:lqr_basico}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.48\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figs/lqr_ref_escalon_delta_parametros_finales.png}
+    \caption{Ajuste final}
+    \label{fig:lqr_modificado}
+  \end{subfigure}
+  \caption{Comparación de respuesta al variar los pesos del controlador}
+  \label{fig:lqr_comparacion_parametros}
+\end{figure}
+
+En una maniobra de estacionamiento, donde el vehículo se encuentra detenido y se piden rotaciones amplias de las ruedas delanteras, la respuesta rápida es deseable porque reduce el retardo percibido entre la referencia de dirección y la posición real de las ruedas. Sin embargo, cuando el vehículo circula a velocidad aparece el torque autoalineante $T_a$, que actúa como perturbación mecánica sobre la rueda. Para una referencia de $10^\circ$, esta perturbación produce error de estado estacionario si se utiliza únicamente el LQR sin acción integral, como se observa en la figura \ref{fig:error_estado_estacionario}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{figs/error_estado_estacionario.png}
+    \caption{Error de estado estacionario ante torque autoalineante}
+    \label{fig:error_estado_estacionario}
+\end{figure}
+
+Este resultado justifica la incorporación de la acción integral en el controlador aumentado, ya que permite corregir el error permanente generado por perturbaciones constantes o lentamente variables.
 
 \section*{Referencias}
 \addcontentsline{toc}{section}{Referencias}
