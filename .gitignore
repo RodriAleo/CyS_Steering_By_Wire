@@ -19,3 +19,4 @@ Informe_CyS_SteeringByWire/*.synctex.gz
 *.slx.original
 .venv/
 __pycache__/
+CODEX/
