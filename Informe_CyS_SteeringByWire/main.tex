@@ -17,6 +17,7 @@
 \usepackage[spanish]{babel}
 \usepackage[paper=a4paper,margin=2.75cm]{geometry}
 \usepackage{booktabs} % for tables
+\usepackage{xurl}
 \usepackage[colorlinks = true,
             linkcolor = blue,
             urlcolor  = blue,
@@ -53,7 +54,7 @@
 % Resumen
 % ======================================================================
 \begin{abstract}
-    El presente documento presenta los contenidos mínimos que debe tener el proyecto final de la cátedra de Control y Sistemas de la Universidad Nacional de Cuyo. Además, se aclara el estilo de redacción que debe tener el informe del proyecto final y se facilitan algunos recursos para la edición de documentos en \LaTeX.  
+    En este trabajo se desarrolla el modelado, control y validación por simulación de un sistema de dirección por cable aplicado al actuador del lado de las ruedas. La planta se representa en espacio de estados a partir de un modelo electromecánico que incluye la dinámica eléctrica del motor, la transmisión hacia la cremallera, la dinámica de giro de las ruedas y perturbaciones mecánicas asociadas a fricción y torque autoalineante. Se verifica la estabilidad a lazo abierto, la controlabilidad desde la tensión aplicada al motor y la observabilidad a partir de la medición de posición de cremallera. Para el seguimiento del ángulo de rueda se diseña un controlador óptimo en espacio de estados, acompañado por un observador de Kalman para estimar los estados no medidos a partir de una señal sensada ruidosa y muestreada. Además, se valida la elección de un actuador electromecánico realista mediante un motor equivalente de 48 V y una transmisión por husillo de bolas. Los resultados de simulación muestran que una referencia escalón exige corrientes pico excesivas, mientras que una referencia trapezoidal reduce la demanda transitoria y mantiene corriente, torque, velocidad y tensión dentro de los límites nominales del motor seleccionado. De este modo, el modelo permite evaluar de forma integrada la respuesta dinámica, las exigencias del actuador y el efecto de perturbaciones representativas en un sistema Steering-by-Wire.
 \end{abstract}
 
 % Secciones
@@ -93,7 +94,7 @@ Este enfoque constituye una innovación relevante en el ámbito automotriz, y pr
 % ======================================================================
 \section{Desarrollo}
 \subsection{Modelado de la planta}
-El sistema de direccionamiento de las ruedas consiste en un motor de corriente continua que acciona un sistema piñón-cremallera. La cremallera, al moverse lateralmente, acciona una rótula que permite la rotación de las ruedas. En la figura \ref{fig:esquema_planta} puede verse una representación del sistema:
+El sistema de direccionamiento de las ruedas consiste en un motor eléctrico que acciona la cremallera mediante una transmisión equivalente basada en husillo de bolas. En este tipo de actuador, la rotación del motor se convierte en desplazamiento lineal de la cremallera, la cual acciona las rótulas que permiten la rotación de las ruedas. En la figura \ref{fig:esquema_planta} puede verse una representación simplificada del sistema:
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.5\linewidth]{figs/Esquema_planta.png}
@@ -129,9 +130,14 @@ Donde:
     \item $J_m$: Momento de inercia del rotor ($\mathrm{kg \cdot m^2}$).
     \item $T_m(t)$: Par generado por el motor ($\mathrm{N \cdot m}$). Se considera proporcional a la corriente mediante la constante de par motor $K_t$ ($\mathrm{\frac{N \cdot m}{A}}$). Luego: $T_m(t) = K_t \cdot i_m(t)$.
     \item $B_m$: Coeficiente de fricción viscosa del eje ($\mathrm{\frac{N \cdot m \cdot s}{rad}}$). Modela las pérdidas mecánicas por fricción.
-    \item $K_{a}$: Constante de rigidez del acoplamiento elástico ($\mathrm{\frac{N \cdot m}{rad}}$). Representa la holgura entre el piñón y la cremallera. Si este valor tendiera a infinito, se estaría considerando un acoplamiento perfecto entre los engranajes. Se utiliza este componente elástico para representar la falta de transmisión directa entre el motor y la cremallera.
+    \item $K_{a}$: Constante de rigidez del acoplamiento elástico ($\mathrm{\frac{N \cdot m}{rad}}$). Representa la elasticidad equivalente de la transmisión entre el eje motor y la cremallera. Si este valor tendiera a infinito, se estaría considerando un acoplamiento rígido ideal. Se utiliza este componente elástico para representar que la transmisión real no es perfectamente rígida.
     \item $y_c(t)$: Desplazamiento lineal de la cremallera ($\mathrm{m}$).
-    \item $r_p$: Radio efectivo del piñón ($\mathrm{m}$). Para ángulos pequeños, convierte la rotación del piñón $\theta_p$ a un desplazamiento lineal de la cremallera mediante $\theta_p \cdot r_p = y_c$.
+    \item $r_p$: Radio cinemático equivalente de la transmisión por husillo de bolas ($\mathrm{m/rad}$). Representa la conversión entre rotación del motor y desplazamiento lineal de cremallera. Como en este modelo el motor y el husillo se acoplan con relación $1:1$, se calcula a partir del avance lineal del husillo por vuelta $p_{bs}$:
+    \begin{equation}
+    r_p = \frac{p_{bs}}{2\pi}
+    \label{ec_rp_ball_screw}
+    \end{equation}
+    De esta manera, la relación cinemática ideal queda dada por $y_c(t)=r_p\,\theta_m(t)$.
 \end{itemize}
 
 La ecuación dinámica de la cremallera es:
@@ -176,19 +182,21 @@ En la tabla \ref{tab:parametros_modelo} pueden verse un resumen de todos los par
 \toprule
 \textbf{Símbolo} & \textbf{Valor} & \textbf{Unidad} \\
 \midrule
-$L_m$     & $0.002$   & $\mathrm{H}$ \\
-$R_m$     & $0.6$     & $\mathrm{\Omega}$ \\
-$B_m$     & $1$       & $\mathrm{N \cdot m \cdot s / rad}$ \\
-$J_m$     & $1.9$     & $\mathrm{kg \cdot m^2}$ \\
-$K_e$     & $0.35$    & $\mathrm{V \cdot s / rad}$ \\
-$K_t$     & $0.35$    & $\mathrm{N \cdot m / A}$ \\
+$L_m$     & $0.42 \times 10^{-3}$ & $\mathrm{H}$ \\
+$R_m$     & $0.135$   & $\mathrm{\Omega}$ \\
+$B_m$     & $1 \times 10^{-3}$ & $\mathrm{N \cdot m \cdot s / rad}$ \\
+$J_m$     & $1.0 \times 10^{-3}$ & $\mathrm{kg \cdot m^2}$ \\
+$K_e$     & $0.6$     & $\mathrm{V \cdot s / rad}$ \\
+$K_t$     & $0.6$     & $\mathrm{N \cdot m / A}$ \\
+$V_{m,\max}$ & $48$   & $\mathrm{V}$ \\
 \midrule
 $K_a$     & $3500$    & $\mathrm{N \cdot m / rad}$ \\
 \midrule
 $B_{cr}$  & $1.032$   & $\mathrm{N \cdot s / m}$ \\
 $M_{cr}$  & $2.0$     & $\mathrm{kg}$ \\
-$r_l$     & $0.3$     & $\mathrm{m}$ \\
-$r_p$     & $0.035$   & $\mathrm{m}$ \\
+$r_l$     & $0.115$   & $\mathrm{m/rad}$ \\
+$p_{bs}$  & $32 \times 10^{-3}$ & $\mathrm{m/rev}$ \\
+$r_p$     & $5.09 \times 10^{-3}$ & $\mathrm{m/rad}$ \\
 \midrule
 $B_f$     & $30$      & $\mathrm{N \cdot m \cdot s / rad}$ \\
 $K_f$     & $26000$   & $\mathrm{N \cdot m / rad}$ \\
@@ -196,6 +204,8 @@ $I_f$     & $0.270$   & $\mathrm{kg \cdot m^2}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+Los parámetros eléctricos y electromecánicos del motor se adoptaron a partir del \hyperlink{ref:mosrac-u13060}{catálogo del motor Mosrac U13060 de $48\ \mathrm{V}$}, utilizado como motor equivalente del actuador de ruedas. Los parámetros mecánicos de base del modelo de dirección por cable se tomaron como referencia del paper \hyperlink{ref:taher-2025}{\textit{Improving the Performance of Steering by Wire Using a Model Predictive Controller Enhanced with Particle Swarm Optimisation}}, y fueron ajustados para la arquitectura final con husillo de bolas.
 
 
 
@@ -222,7 +232,7 @@ Debido a que el sistema es lineal, puede ser representado de forma matricial uti
 \begin{equation}
 \left\{
 \begin{aligned}
-\dot{x}(t) &= A \cdot x(t) + B_c \cdot u(t) + B_d \cdot d(t) ;\quad x(0) = 0\\
+\dot{x}(t) &= A \cdot x(t) + B_c \cdot u(t) + B_d \cdot d(t) ;\quad x(0) = \mathbf{0}\\
 y(t) &= C \cdot x(t)
 \end{aligned}
 \right.
@@ -295,24 +305,20 @@ B_d =
 \end{bmatrix}
 \end{equation}
 
-Con respecto al vector de salidas $y(t)$ y su matriz correspondiente $C$, se tienen 2 versiones: una que se utiliza para analizar el desempeño del modelo, que extrae la corriente utilizada por el motor $i_m(t)$ y la posición angular de las ruedas $\delta(t)$, ambas útiles para el diseño del controlador; y otra que extrae la información del sensor de posición $\theta_m$ colocado en el eje motor, y que será luego utilizado para diseñar un observador de estado.
+Con respecto al vector de salidas $y(t)$ y su matriz correspondiente $C$, se tienen 2 versiones: una que se utiliza como salida de desempeño para el diseño del controlador, y otra que representa la variable medida por el sensor. La variable que interesa controlar es el ángulo de las ruedas $\delta(t)$. Por otro lado, el sensor mide la posición lineal de la cremallera $y_c(t)$, variable utilizada luego para el diseño del observador de estado. Por lo tanto:
 
 \begin{equation}
-y_p(t) = 
+y_p(t) = \delta(t) \, ; \quad C_p =
 \begin{bmatrix}
-i_m(t) & \delta(t)
-\end{bmatrix}^T\, ; \quad C_p =
-\begin{bmatrix}
-1 & 0 & 0 & 0 & 0 & 0 & 0 \\
-0 & 0 & 0 & 0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 0 & 0 & 1 & 0
 \end{bmatrix}
 \label{eq:salida_performance}
 \end{equation}
 
 \begin{equation}
-y_s(t) = \theta_m(t)  \, ; \quad C_s =
+y_s(t) = y_c(t)  \, ; \quad C_s =
 \begin{bmatrix}
-0 & 1 & 0 & 0 & 0 & 0 & 0
+0 & 0 & 0 & 1 & 0 & 0 & 0
 \end{bmatrix}
 \end{equation}
 
@@ -321,9 +327,9 @@ y_s(t) = \theta_m(t)  \, ; \quad C_s =
 A continuación se enumeran las principales simplificaciones y supuestos realizados en la construcción del modelo:
 
 \begin{itemize}
-    \item Se supone que el sistema es lineal e invariante en el tiempo (LTI), con parámetros constantes. No se consideran efectos no lineales como saturación de actuadores, juego mecánico en el sistema piñón-cremallera y, la fricción de Coulomb de distintos elementos se la considera como una entrada de perturbación.
+    \item La planta utilizada para el diseño del controlador se modela como un sistema lineal e invariante en el tiempo (LTI), con parámetros constantes. Las saturaciones de tensión y los límites de operación del motor se consideran durante la simulación y validación del actuador, pero no forman parte de la matriz dinámica lineal $A$.
 
-    \item Se está considerando que ambas ruedas delanteras giran con el mismo ángulo. Esto es una simplificación que sigue al modelo cinemático simplificado de tipo "bicicleta". En la realidad, el mecanismo de dirección hace que las ruedas giren distintos ángulos para que el vehículo gire respecto de un solo centro de rotación. En la figura \ref{fig:modelo_ackerman} se ve un modelo cinemático que respeta este fenómeno:
+    \item Se considera que ambas ruedas delanteras giran con el mismo ángulo $\delta(t)$. Esta simplificación sigue al modelo cinemático tipo bicicleta. En la realidad, la geometría de dirección hace que las ruedas giren con ángulos distintos para respetar la condición de Ackerman. En la figura \ref{fig:modelo_ackerman} se ve un modelo cinemático que contempla este fenómeno:
     \begin{figure}[H]
         \centering
         \includegraphics[width=0.5\linewidth]{figs/modelo_ackerman.png}
@@ -331,17 +337,23 @@ A continuación se enumeran las principales simplificaciones y supuestos realiza
         \label{fig:modelo_ackerman}
     \end{figure}
 
-    \item El motor eléctrico se representa mediante un modelo continuo promediado. No se modelará la conmutación discreta ni el control PWM.
+    \item El motor eléctrico se representa mediante un modelo continuo equivalente de corriente continua. No se modelan la conmutación electrónica, las fases del motor, el inversor ni el control PWM.
 
-    \item Se asume acoplamiento exclusivamente a través del par motor. No se consideran efectos eléctricos secundarios como inductancia mutua, histéresis magnética ni corrientes parásitas.
+    \item No se consideran efectos eléctricos secundarios como inductancia mutua, histéresis magnética, saturación magnética ni corrientes parásitas. La conversión electromecánica se modela únicamente mediante las constantes $K_t$ y $K_e$.
 
-    \item La rigidez del acoplamiento entre el motor y la carga se modela mediante un resorte lineal. No se incluyen deformaciones plásticas ni rigidez no lineal.
+    \item La transmisión motor-cremallera se representa mediante un radio cinemático equivalente $r_p$ asociado al husillo de bolas. No se modelan explícitamente la tuerca, el contacto entre bolas y pistas, la eficiencia variable, el juego mecánico ni posibles pérdidas internas del husillo.
 
-    \item La fricción se modela únicamente como viscosa, proporcional a la velocidad. Se omiten componentes estáticas o dependientes del régimen de operación.
+    \item La elasticidad equivalente entre motor y cremallera se modela mediante una rigidez lineal $K_a$. No se incluyen deformaciones plásticas, rigidez no lineal ni modos flexibles de la transmisión.
+
+    \item Las fricciones viscosas del motor, la cremallera y la rueda se incluyen dentro de la dinámica lineal. Las componentes secas o tipo Coulomb se representan como perturbaciones externas $F_f(t)$ y $T_f(t)$, por lo que no modifican la matriz $A$. Sus valores se consideran constantes y no se modela su variación con la velocidad, la temperatura ni el régimen de operación.
 
     \item Se adopta un enfoque de parámetros concentrados tanto para las masas como la rigidez mecánica. No se consideran efectos distribuidos ni modos flexibles.
 
-    \item La carga sobre la cremallera se representa como una masa puntual con fricción viscosa.
+    \item La carga sobre la cremallera se representa como una masa puntual con fricción viscosa y perturbación externa. No se modelan deformaciones locales, topes mecánicos ni límites de carrera dentro de la planta lineal.
+
+    \item El torque autoalineante se incorpora como una perturbación externa $T_a(t)$. Su cálculo puede depender de variables no lineales del neumático, pero dicha no linealidad queda fuera de la matriz de estados de la planta.
+
+    \item El sensor se modela fuera de la planta continua como una medición de posición de cremallera $y_c(t)$, con ruido, dinámica de primer orden y retención de orden cero en Simulink. La matriz $C_s$ solo representa qué variable de estado se mide.
 
     \item Se considera un único actuador de dirección, sin modelar la relación entre ambas ruedas ni la geometría completa de la dirección del vehículo.
 \end{itemize}
@@ -384,76 +396,56 @@ Al resolverlo de forma numérica en MATLAB se obtienen los siguientes polos:
 \toprule
 \textbf{Polo} & \textbf{Valor [$\mathrm{rad/s}$]} \\
 \midrule
-$p_1$ & $-0.8 + 1317.5i$ \\
-$p_2$ & $-0.8 - 1317.5i$ \\
-$p_3$ & $-299.9$ \\
-$p_4$ & $0$ \\
-$p_5$ & $-1.1$ \\
-$p_6$ & $-54.8 + 276.8i$ \\
-$p_7$ & $-54.8 - 276.8i$ \\
+$p_1$ & $-0.4 + 8537.1i$ \\
+$p_2$ & $-0.4 - 8537.1i$ \\
+$p_3$ & $-141.4 + 943.8i$ \\
+$p_4$ & $-141.4 - 943.8i$ \\
+$p_5$ & $0$ \\
+$p_6$ & $-75.2 + 286.3i$ \\
+$p_7$ & $-75.2 - 286.3i$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Los polos del sistema se ubican todos en el semiplano izquierdo del plano complejo, con excepción de uno que se encuentra en el origen. Esto indica que el sistema es marginalmente estable. El polo $p_4 = 0$ corresponde a un modo integrador, lo cual se debe a una acumulación de estado sin disipación. Esto puede verse en la figura \ref{fig:simscape_vs_ss}, donde ante una entrada de tensión, el ángulo de las ruedas aumenta indefinidamente. Los polos $p_1 = -0.8 + 1317.5i$ y $p_2 = -0.8 - 1317.5i$ presentan una parte imaginaria elevada con poca atenuación, lo que refleja modos altamente oscilatorios característicos de la dinámica eléctrica del motor. Por otro lado, los polos $p_6 = -54.8 + 276.8i$ y $p_7 = -54.8 - 276.8i$ representan modos más lentos, con menor frecuencia y amortiguamiento, que dominan la respuesta visible del sistema mecánico.
+Los polos del sistema se ubican todos en el semiplano izquierdo del plano complejo, con excepción de uno prácticamente nulo. Esto indica que el sistema es marginalmente estable. El polo $p_5 \approx 0$ corresponde a un modo integrador, lo cual se debe a una acumulación de estado sin disipación. Esto puede verse en la figura \ref{fig:simscape_vs_ss}, donde ante una entrada de tensión, el ángulo de las ruedas aumenta indefinidamente. Los polos $p_1$ y $p_2$ presentan una parte imaginaria elevada con poca atenuación, lo que refleja modos altamente oscilatorios de alta frecuencia asociados al sistema eléctrico. Por otro lado, los polos $p_6$ y $p_7$ representan modos más lentos, con menor frecuencia, que dominan la respuesta visible del sistema mecánico.
 
-\subsubsection{Análisis de controlabilidad desde la entrada \texorpdfstring{$V_m$}{}}
+\subsubsection{Análisis de controlabilidad y observabilidad}
 
-Un sistema en espacio de estados es completamente controlable si es posible llevar el estado desde cualquier condición inicial hasta cualquier otra en un tiempo finito mediante una entrada adecuada. Matemáticamente, la condición de controlabilidad se verifica a través del rango de la matriz de controlabilidad $\mathcal{C}$ que, para este sistema de orden 7, se define como:
+Un sistema en espacio de estados es completamente controlable si es posible llevar el estado desde cualquier condición inicial hasta cualquier otra en un tiempo finito mediante una entrada adecuada. Matemáticamente, esta condición se verifica a través del rango de la matriz de controlabilidad $\mathcal{C}$. Para este sistema de orden 7, considerando como entrada de control la tensión del motor $V_m(t)$, se define:
 
 \begin{equation}
 \mathcal{C} = \begin{bmatrix}
-B & AB & A^2B & A^3B & A^4B & A^5B & A^6B 
+B_c & AB_c & A^2B_c & A^3B_c & A^4B_c & A^5B_c & A^6B_c
 \end{bmatrix}
 \end{equation}
 
-Si la matriz $\mathcal{C}$ tiene rango completo, luego, el sistema es completamente controlable. Esto ocurre cuando su determinante es diferente de cero. Dicha matriz fue construida simbólicamente en MATLAB utilizando los parámetros del modelo, y calculado el determinante se obtiene la siguiente expresión:
-
-\begin{equation}
-\det(\mathcal{C}) = -\frac{K_f^2 \, K_s^4 \, K_t^6}{J_f^2 \, J_m^6 \, L_m^7 \, M_{cr}^4 \, r_L^2 \, r_P^4} = -1.9658 \times 10^{44}
-\end{equation}
-
-Esta expresión es estrictamente negativa para valores físicos positivos de los parámetros involucrados, lo cual implica que la matriz de controlabilidad es de rango completo y, por lo tanto, el sistema es completamente controlable desde la entrada de tensión del motor.
-
-\subsubsection{Análisis de observabilidad desde la salida \texorpdfstring{$\theta_m$}{} }
-
-Un sistema en espacio de estados es completamente observable si, a partir de la evolución temporal de la salida, es posible reconstruir todos los estados del sistema en un tiempo finito. Matemáticamente, esta propiedad se verifica a través del rango de la matriz de observabilidad $\mathcal{O}$ que, para este sistema de orden 7, se define como:
+Por otro lado, un sistema es completamente observable si, a partir de la evolución temporal de la salida medida, es posible reconstruir todos sus estados. En este modelo, la salida sensada es la posición lineal de cremallera $y_c(t)$, definida mediante la matriz $C_s$. La matriz de observabilidad $\mathcal{O}$ queda dada por:
 
 \begin{equation}
 \mathcal{O} = \begin{bmatrix}
-C \\
-CA \\
-CA^2 \\
-CA^3 \\
-CA^4 \\
-CA^5 \\
-CA^6 
+C_s \\
+C_sA \\
+C_sA^2 \\
+C_sA^3 \\
+C_sA^4 \\
+C_sA^5 \\
+C_sA^6
 \end{bmatrix}
 \end{equation}
 
-Si la matriz $\mathcal{O}$ tiene rango completo, entonces el sistema es completamente observable. En este trabajo, se consideró como salida la variable $\delta$, correspondiente al sexto estado del sistema. La matriz $\mathcal{O}$ fue construida simbólicamente en MATLAB, y el cálculo de su determinante condujo a la siguiente expresión simbólica:
+La verificación numérica se realizó evaluando el rango de ambas matrices con una tolerancia de $10^{-3}$. Para la controlabilidad desde la entrada $V_m(t)$ se obtuvo:
 
 \begin{equation}
-\det(\mathcal{O}) = 
-\frac{4\,K_f^2 \,K_s^4 \,K_t\,\Phi}{J_f\,J_m^5 \,L_m^4 \,M_{cr}^3 \,r_L^4 \,r_P^6}
+\mathrm{rank}\left(\mathcal{C}\right)=7
 \end{equation}
 
-donde el numerador incluye el siguiente término:
-
-\begin{align*}
-\Phi =\; &K_f\,K_s\,L_m^4 \,r_L^2 + 2\,J_f\,K_f\,L_m^2 \,R_m^2 \,r_P^2 + J_f\,K_s\,L_m^2 \,R_m^2 \,r_L^2 + J_f\,M_{cr}\,R_m^4 \,r_L^2 \,r_P^2 \\
-&- 2\,B_f\,K_f\,L_m^3 \,R_m\,r_P^2 - B_f\,K_s\,L_m^3 \,R_m\,r_L^2 - B_{cr}\,J_f\,L_m\,R_m^3 \,r_L^2 \,r_P^2 \\
-&- B_{cr}\,K_f\,L_m^3 \,R_m\,r_L^2 \,r_P^2 - B_f\,L_m\,M_{cr}\,R_m^3 \,r_L^2 \,r_P^2 \\
-&+ B_{cr}\,B_f\,L_m^2 \,R_m^2 \,r_L^2 \,r_P^2 + K_f\,L_m^2 \,M_{cr}\,R_m^2 \,r_L^2 \,r_P^2
-\end{align*}
-
-Al sustituir los valores numéricos de los parámetros físicos utilizados en el modelo, se obtiene:
+Para la observabilidad desde la medición de cremallera $y_c(t)$ se obtuvo:
 
 \begin{equation}
-\det(\mathcal{O}) = 2.6397 \times 10^{39}
+\mathrm{rank}\left(\mathcal{O}\right)=7
 \end{equation}
 
-Este valor elevado y positivo confirma que la matriz de observabilidad es no singular y de rango completo, lo que implica que el sistema es completamente observable desde la medición de la variable $\theta_m$.
+Como ambos rangos coinciden con el orden del sistema, se concluye que la planta es completamente controlable desde la entrada $V_m(t)$ y completamente observable desde la medición de la posición de cremallera $y_c(t)$.
 
 \subsection{Diseño de controlador}
 
@@ -737,11 +729,16 @@ u(t)=-K\cdot x(t)-K_{i}\cdot z(t)
 Notar que la referencia ha sido quitada de la ley de control ya que se encuentra implícita dentro de la variable de estado $z(t)$.
 
 
-\subsection*{Fuentes utilizadas para el modelado del torque autoalineante $T_a$}
+\section*{Referencias}
+\addcontentsline{toc}{section}{Referencias}
 
-Para revisar el orden de magnitud y la forma funcional del torque autoalineante se utilizaron las siguientes fuentes externas:
+Las siguientes referencias se utilizaron para definir parámetros de la planta, validar el actuador y revisar el modelo de torque autoalineante:
 
 \begin{itemize}
+    \item \hypertarget{ref:mosrac-u13060}{}\textbf{Mosrac, \textit{U130 Series Frameless Direct Drive Torque Motors}}. Catálogo web utilizado como referencia para el motor equivalente Mosrac U13060 de $48\ \mathrm{V}$. Disponible en: \url{https://www.mosrac.com/products/frameless-direct-drive-torque-motors/u130-series.html}.
+
+    \item \hypertarget{ref:taher-2025}{}\textbf{Taher Sachit Taher et al., \textit{Improving the Performance of Steering by Wire Using a Model Predictive Controller Enhanced with Particle Swarm Optimisation}}. Archivo local: \texttt{Papers/Improving\_the\_Performance\_of\_Steering\_by\_Wire\_Usin.pdf}. Al-Khwarizmi Engineering Journal, vol. 21, no. 1, pp. 61--72, 2025. DOI: \url{https://doi.org/10.22153/kej.2025.01.002}.
+
     \item \textbf{Georg Rill, \textit{First Order Tire Dynamics}}. Disponible en: \url{https://www.researchgate.net/publication/317036997_First_Order_Tire_Dynamics}. De esta fuente se tomó la relación física básica entre torque autoalineante y fuerza lateral, expresada como $T_S = c_o F_y$, donde $c_o$ representa el \textit{pneumatic trail}. Esta idea se utilizó como base para escribir $T_a$ como producto entre fuerza lateral y brazo efectivo del neumático, con signo restaurador.
 
     \item \textbf{ScienceDirect Topics, \textit{Aligning Torque}}. Disponible en: \url{https://www.sciencedirect.com/topics/engineering/aligning-torque}. De esta fuente se extrajo el comportamiento cualitativo esperado del torque autoalineante en neumáticos reales: crecimiento aproximadamente lineal para ángulos de deriva pequeños, aparición de un máximo a bajos ángulos de deriva y disminución posterior al aumentar el deslizamiento lateral. También se utilizó para justificar que el \textit{pneumatic trail} disminuye cuando crece el ángulo de deriva.
