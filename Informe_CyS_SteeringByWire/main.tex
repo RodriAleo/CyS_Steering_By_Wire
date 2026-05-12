@@ -513,7 +513,127 @@ Para seguimiento de referencia con el LQR puro se utiliza una ganancia de precom
 k_{r} = -\bigl(C_{p} \cdot (A - B_{c} \cdot K_{\mathrm{lqr}})^{-1} \cdot B_{c}\bigr)^{-1}.
 \end{equation}
 
-Esta versión permite analizar la respuesta inicial del sistema y sirve como base para el controlador aumentado con acción integral.
+\subsection{Sensor}
+
+El sensor utilizado en el modelo mide la posición lineal de la cremallera $y_c(t)$. Se descartó la alternativa de medir $\theta_m(t)$ con un encoder sobre el eje del motor debido a que este necesariamente realiza más de una revolución a lo largo de toda la carrera de la cremallera. En ese caso, un sensor angular absoluto de una sola vuelta no alcanza para reconstruir la posición absoluta de la cremallera sin agregar conteo de vueltas. Un encoder incremental sobre el motor también podría resolverlo, pero requiere conservar el conteo acumulado y gestionar fallas o reinicios. Por esta razón, para el observador resulta más simple medir directamente $y_c(t)$.
+
+Se seleccionó como referencia el sensor \hyperlink{ref:mlx90513}{Melexis MLX90513}, un sensor inductivo automotriz para medición absoluta de posición rotativa o lineal.
+
+El sensor está representado en Simulink mediante cuatro etapas. En primer lugar se modela la dinámica interna del sensor y el acondicionamiento de señal como un filtro pasabajos de primer orden:
+
+\begin{equation}
+y_{c,f}(s)=\frac{1}{\tau_{sensor} \, s+1}\,y_c(s)
+\end{equation}
+
+Luego, la señal filtrada se muestrea y se mantiene constante entre dos instantes consecutivos mediante una retención de orden cero. Sobre esa señal retenida se suma ruido discreto de medición $n[k]$, modelado como un error uniforme acotado, y luego se aplica cuantización con intervalo $q_{yc}$. Finalmente, la señal cuantizada es la medición entregada al observador en cada instante de muestreo.
+
+Los parámetros adoptados para la simulación se muestran en la tabla \ref{tab:parametros_sensor}.
+
+\begin{table}[H]
+\small
+\centering
+\caption{Parámetros del sensor de posición de cremallera}
+\label{tab:parametros_sensor}
+\begin{tabular}{c c c}
+\toprule
+\textbf{Parámetro} & \textbf{Valor} & \textbf{Interpretación} \\
+\midrule
+$T_{s,sensor}$ & $0.01\ \mathrm{s}$ & período de actualización de la medición \\
+$\tau_{sensor}$ & $0.01\ \mathrm{s}$ & constante de tiempo del filtro de primer orden \\
+$e_{yc,\max}$ & $0.135\ \mathrm{mm}=1.35\times10^{-4}\ \mathrm{m}$ & error máximo de medición adoptado \\
+$\sigma_{yc}$ & $0.078\ \mathrm{mm}=7.79\times10^{-5}\ \mathrm{m}$ & desviación estándar equivalente del error uniforme \\
+$q_{yc}$ & $0.033\ \mathrm{mm}=3.3\times10^{-5}\ \mathrm{m}$ & intervalo de cuantización \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El datasheet del \hyperlink{ref:mlx90513}{Melexis MLX90513} especifica un error máximo de $\pm 0.1\%$ del fondo de escala. Considerando la carrera de cremallera utilizada en el modelo, $L_{yc}=135\ \mathrm{mm}$, dicho error equivale a:
+
+\begin{equation}
+e_{yc,\max}=0.001\,L_{yc}=0.001\cdot135\ \mathrm{mm}
+=0.135\ \mathrm{mm}=1.35\times10^{-4}\ \mathrm{m}.
+\end{equation}
+
+Además, en la tabla de especificaciones eléctricas se indica un ruido RMS de la señal de posición de $0.070^\circ_{\mathrm{el}}$ para la configuración menos favorable. Se utilizan grados eléctricos porque el sensor mide la fase de un sistema inductivo. En una aplicación lineal, dicha fase se calibra contra la carrera mecánica medida. Si se considera una calibración lineal de una vuelta eléctrica sobre la carrera útil de la cremallera, el ruido RMS equivalente resulta:
+
+\begin{equation}
+\sigma_{yc,\mathrm{RMS}}\simeq
+\frac{0.070^\circ_{\mathrm{el}}}{360^\circ_{\mathrm{el}}}\,L_{yc}
+=
+\frac{0.070^\circ_{\mathrm{el}}}{360^\circ_{\mathrm{el}}}\cdot135\ \mathrm{mm}
+=0.026\ \mathrm{mm}=2.6\times10^{-5}\ \mathrm{m}.
+\end{equation}
+
+Sin embargo, para modelar el sensor se usa el error máximo $e_{yc,\max}=0.135\ \mathrm{mm}$, ya que este valor contempla no solo el ruido aleatorio sino también no linealidades (térmicas y magnéticas), errores de calibración y efectos de montaje. Como el ruido se implementa mediante una variable uniforme acotada entre $\pm e_{yc,\max}$, la desviación estándar equivalente usada para la covarianza de medición es:
+
+\begin{equation}
+\sigma_{yc}=\frac{e_{yc,\max}}{\sqrt{3}}=0.078\ \mathrm{mm}
+=7.8\times10^{-5}\ \mathrm{m}.
+\end{equation}
+
+Además, el hoja de datos declara que la salida PWM utiliza 12 bits. Si esos 12 bits se distribuyen sobre la carrera útil de la cremallera, el intervalo de cuantización ideal es:
+
+\begin{equation}
+q_{yc,\mathrm{ideal}}=
+\frac{L_{yc}}{2^{12}}
+=
+\frac{135\ \mathrm{mm}}{4096}
+=0.033\ \mathrm{mm}=3.3\times10^{-5}\ \mathrm{m}.
+\end{equation}
+
+La constante de tiempo $\tau_{sensor}=10\ \mathrm{ms}$ modela una dinámica efectiva de primer orden asociada al filtrado y acondicionamiento de la medición. No se interpreta como una especificación directa del integrado, sino como el filtro incluido en la cadena de medición simulada. Su frecuencia de corte equivalente es:
+
+\begin{equation}
+f_c=\frac{1}{2\pi\tau_{sensor}}=15.9\ \mathrm{Hz}.
+\end{equation}
+
+Por otro lado, $T_{s,sensor}=10\ \mathrm{ms}$ representa la actualización de la medición entregada al controlador. Este período no pretende ser el límite físico del integrado; en el modelo representa la medición digital retenida disponible para el lazo de control.
+
+\subsection{Diseño del observador}
+
+La desviación estándar equivalente del ruido uniforme se utiliza luego para definir la covarianza de medición del observador de Kalman:
+
+\begin{equation}
+R=\sigma_{yc}^{2}.
+\end{equation}
+
+De esta forma, el ruido inyectado en la simulación y la confianza asignada a la medición dentro del observador quedan definidos de manera coherente.
+
+\subsection{Resultados}
+
+La figura \ref{fig:lqr_comparacion_parametros} muestra el efecto de modificar los pesos del LQR sobre la respuesta de $\delta(t)$. Al aumentar la penalización sobre el error de posición angular y ajustar la penalización sobre la tensión de motor, el sistema alcanza la referencia con mayor rapidez, aunque el esfuerzo de control queda limitado por la saturación de $48\ \mathrm{V}$ del actuador.
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[b]{0.48\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figs/lqr_ref_escalon_delta_parametros_iniciales.png}
+    \caption{Ajuste inicial}
+    \label{fig:lqr_basico}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.48\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figs/lqr_ref_escalon_delta_parametros_finales.png}
+    \caption{Ajuste final}
+    \label{fig:lqr_modificado}
+  \end{subfigure}
+  \caption{Comparación de respuesta al variar los pesos del controlador}
+  \label{fig:lqr_comparacion_parametros}
+\end{figure}
+
+En una maniobra de estacionamiento, donde el vehículo se encuentra detenido y se piden rotaciones amplias de las ruedas delanteras, la respuesta rápida es deseable porque reduce el retardo percibido entre la referencia de dirección y la posición real de las ruedas. Sin embargo, cuando el vehículo circula a velocidad aparece el torque autoalineante $T_a$, que actúa como perturbación mecánica sobre la rueda. Para una referencia de $10^\circ$, esta perturbación produce error de estado estacionario si se utiliza únicamente el LQR sin acción integral, como se observa en la figura \ref{fig:error_estado_estacionario}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{figs/error_estado_estacionario.png}
+    \caption{Error de estado estacionario ante torque autoalineante}
+    \label{fig:error_estado_estacionario}
+\end{figure}
+
+Este resultado justifica la incorporación de la acción integral en el controlador aumentado, ya que permite corregir el error permanente generado por perturbaciones constantes o lentamente variables.
+
+\subsection{Cosas a reordenar bien al final de todo}
 
 \subsubsection{Implementación propuesta de \texorpdfstring{$T_a$}{Ta} por rueda}
 
@@ -694,49 +814,17 @@ u(t)=-K\cdot x(t)-K_{i}\cdot z(t)
 
 Notar que la referencia ha sido quitada de la ley de control ya que se encuentra implícita dentro de la variable de estado $z(t)$.
 
-\subsection{Resultados}
-
-La figura \ref{fig:lqr_comparacion_parametros} muestra el efecto de modificar los pesos del LQR sobre la respuesta de $\delta(t)$. Al aumentar la penalización sobre el error de posición angular y ajustar la penalización sobre la tensión de motor, el sistema alcanza la referencia con mayor rapidez, aunque el esfuerzo de control queda limitado por la saturación de $48\ \mathrm{V}$ del actuador.
-
-\begin{figure}[H]
-  \centering
-  \begin{subfigure}[b]{0.48\linewidth}
-    \centering
-    \includegraphics[width=\linewidth]{figs/lqr_ref_escalon_delta_parametros_iniciales.png}
-    \caption{Ajuste inicial}
-    \label{fig:lqr_basico}
-  \end{subfigure}
-  \hfill
-  \begin{subfigure}[b]{0.48\linewidth}
-    \centering
-    \includegraphics[width=\linewidth]{figs/lqr_ref_escalon_delta_parametros_finales.png}
-    \caption{Ajuste final}
-    \label{fig:lqr_modificado}
-  \end{subfigure}
-  \caption{Comparación de respuesta al variar los pesos del controlador}
-  \label{fig:lqr_comparacion_parametros}
-\end{figure}
-
-En una maniobra de estacionamiento, donde el vehículo se encuentra detenido y se piden rotaciones amplias de las ruedas delanteras, la respuesta rápida es deseable porque reduce el retardo percibido entre la referencia de dirección y la posición real de las ruedas. Sin embargo, cuando el vehículo circula a velocidad aparece el torque autoalineante $T_a$, que actúa como perturbación mecánica sobre la rueda. Para una referencia de $10^\circ$, esta perturbación produce error de estado estacionario si se utiliza únicamente el LQR sin acción integral, como se observa en la figura \ref{fig:error_estado_estacionario}.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.5\linewidth]{figs/error_estado_estacionario.png}
-    \caption{Error de estado estacionario ante torque autoalineante}
-    \label{fig:error_estado_estacionario}
-\end{figure}
-
-Este resultado justifica la incorporación de la acción integral en el controlador aumentado, ya que permite corregir el error permanente generado por perturbaciones constantes o lentamente variables.
-
 \section*{Referencias}
 \addcontentsline{toc}{section}{Referencias}
 
-Las siguientes referencias se utilizaron para definir parámetros de la planta, validar el actuador y revisar el modelo de torque autoalineante:
+Las siguientes referencias se utilizaron para definir parámetros de la planta, validar el actuador, seleccionar el sensor y revisar el modelo de torque autoalineante:
 
 \begin{itemize}
     \item \hypertarget{ref:mosrac-u13060}{}\textbf{Mosrac, \textit{U130 Series Frameless Direct Drive Torque Motors}}. Catálogo web utilizado como referencia para el motor equivalente Mosrac U13060 de $48\ \mathrm{V}$. Disponible en: \url{https://www.mosrac.com/products/frameless-direct-drive-torque-motors/u130-series.html}.
 
     \item \hypertarget{ref:taher-2025}{}\textbf{Taher Sachit Taher et al., \textit{Improving the Performance of Steering by Wire Using a Model Predictive Controller Enhanced with Particle Swarm Optimisation}}. Archivo local: \texttt{Papers/Improving\_the\_Performance\_of\_Steering\_by\_Wire\_Usin.pdf}. Al-Khwarizmi Engineering Journal, vol. 21, no. 1, pp. 61--72, 2025. DOI: \url{https://doi.org/10.22153/kej.2025.01.002}.
+
+    \item \hypertarget{ref:mlx90513}{}\textbf{Melexis, \textit{MLX90513 Inductive Position Sensor Interface IC}}. Sensor inductivo automotriz para medición absoluta rotativa o lineal, utilizado como referencia para la medición de posición de cremallera y para el error máximo de medición. Página del producto: \url{https://www.melexis.com/en/product/MLX90513}. Datasheet: \url{https://www.melexis.com/-/media/files/documents/datasheets/mlx90513-datasheet-melexis.pdf}.
 
     \item \textbf{Georg Rill, \textit{First Order Tire Dynamics}}. Disponible en: \url{https://www.researchgate.net/publication/317036997_First_Order_Tire_Dynamics}. De esta fuente se tomó la relación física básica entre torque autoalineante y fuerza lateral, expresada como $T_S = c_o F_y$, donde $c_o$ representa el \textit{pneumatic trail}. Esta idea se utilizó como base para escribir $T_a$ como producto entre fuerza lateral y brazo efectivo del neumático, con signo restaurador.
 
