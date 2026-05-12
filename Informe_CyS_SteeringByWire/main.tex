@@ -643,133 +643,75 @@ Finalmente, el controlador LQR se implementa utilizando los estados estimados, p
 u(t)=-K_{\mathrm{lqr}}\hat{x}(t)+k_r r(t).
 \end{equation}
 
+\subsection{Perturbaciones}
+
+Además de la entrada de control $V_m$, el modelo considera perturbaciones mecánicas que actúan sobre la cremallera y sobre el giro de las ruedas. Estas perturbaciones se incorporan mediante la matriz $B_d$ y se agrupan en el vector
+\begin{equation}
+d(t)=
+\begin{bmatrix}
+F_f(t) & T_f(t) & T_a(t)
+\end{bmatrix}^{T},
+\end{equation}
+donde $F_f$ representa la fuerza de fricción en la cremallera, $T_f$ el torque de fricción asociado al pivote de la rueda, y $T_a$ el torque de autoalineamiento del neumático.
+
+Los valores nominales de fricción adoptados fueron $F_{f,\mathrm{cte}}=9\ \mathrm{N}$ y $T_{f,\mathrm{cte}}=2\ \mathrm{N\,m}$. Estos valores se tomaron como referencia del trabajo de \hyperlink{ref:azizul-2024}{Azizul et al.}, donde se presenta un modelo completo de vehículo de 14 grados de libertad para sistemas \textit{steer-by-wire}. En una primera aproximación, estas fricciones podrían modelarse mediante funciones signo. Sin embargo, una implementación de ese tipo introduce saltos instantáneos al cambiar el sentido de movimiento, lo cual no resulta representativo de un sistema físico real y puede degradar la simulación numérica.
+
+Por este motivo, en Simulink se implementaron mediante funciones arcotangente:
+\begin{equation}
+F_f(v_{cr})=
+F_{f,\mathrm{cte}}\frac{2}{\pi}
+\arctan\left(\frac{v_{cr}}{v_{\epsilon,cr}}\right),
+\end{equation}
+\begin{equation}
+T_f(\psi)=
+T_{f,\mathrm{cte}}\frac{2}{\pi}
+\arctan\left(\frac{\psi}{\omega_{\epsilon,f}}\right),
+\end{equation}
+donde $v_{cr}$ es la velocidad de la cremallera y $\psi=\dot{\delta}$ es la velocidad angular de la rueda. En la simulación se utilizaron $v_{\epsilon,cr}=10^{-4}\ \mathrm{m/s}$ y $\omega_{\epsilon,f}=10^{-4}\ \mathrm{rad/s}$. Con esta formulación, para velocidades suficientemente grandes el valor tiende a $\pm F_{f,\mathrm{cte}}$ o $\pm T_{f,\mathrm{cte}}$, mientras que alrededor de cero se obtiene una transición continua.
+
+El torque de autoalineamiento $T_a$ aparece cuando el neumático desarrolla fuerza lateral (representada en la figura \ref{fig:fuerza_resultante_lateral}). Debido a la deformación de la huella de contacto, la resultante lateral no actúa exactamente sobre el centro geométrico de la rueda, sino con un brazo efectivo conocido como \textit{pneumatic trail}. Esto genera un torque que tiende a alinear la rueda con la dirección de avance. La relación física utilizada como base fue la indicada por \hyperlink{ref:rill-first-order}{Rill}, donde el torque autoalineante puede interpretarse como el producto entre la fuerza lateral y dicho brazo efectivo.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.35\linewidth]{figs/fuerza_resultante_lateral.png}
+    \caption{Fuerza resultante lateral debido a una rotación de la rueda en sentido horario}
+    \label{fig:fuerza_resultante_lateral}
+\end{figure}
+
+
+
+En este trabajo no se modela el neumático con un modelo dinámico completo. En cambio, se estimó $T_a$ por rueda a partir de un modelo bicicleta en régimen estacionario. Primero se calcula el ángulo de deriva delantero $\alpha_f$ (\textit{sideslip angle} en la figura \ref{fig:fuerza_resultante_lateral}) a partir de $\delta(t)$ y de la velocidad longitudinal del vehículo. Luego se estima la fuerza lateral por rueda con una saturación suave:
+\begin{equation}
+F_{y,\mathrm{wheel}}=
+F_{y,\max}\tanh\left(\frac{C_{f,\mathrm{wheel}}\alpha_f}{F_{y,\max}}\right).
+\end{equation}
+Finalmente, el brazo efectivo se aproxima mediante
+\begin{equation}
+t_{\mathrm{eff}}=
+t_0\,e^{-k_{\alpha}|\alpha_f|}
+\frac{1}{1+\left(V_x/V_t\right)^2},
+\end{equation}
+y el torque autoalineante queda dado por
+\begin{equation}
+T_a=F_{y,\mathrm{wheel}}\,t_{\mathrm{eff}}.
+\end{equation}
+En el modelo se adoptaron $t_0=0.08\ \mathrm{m}$, $k_{\alpha}=8$ y $V_t=40\ \mathrm{m/s}$. Para velocidades menores a $0.5\ \mathrm{m/s}$ se impone $T_a=0$, ya que en una maniobra prácticamente detenida no se genera una fuerza lateral estacionaria representativa. Esta simplificación permite introducir el efecto restaurador principal del neumático sin aumentar de forma significativa la complejidad del modelo.
+
 \subsection{Resultados}
 
-La figura \ref{fig:lqr_comparacion_parametros} muestra el efecto de modificar los pesos del LQR sobre la respuesta de $\delta(t)$. Al aumentar la penalización sobre el error de posición angular y ajustar la penalización sobre la tensión de motor, el sistema alcanza la referencia con mayor rapidez, aunque el esfuerzo de control queda limitado por la saturación de $48\ \mathrm{V}$ del actuador.
-
-\begin{figure}[H]
-  \centering
-  \begin{subfigure}[b]{0.48\linewidth}
-    \centering
-    \includegraphics[width=\linewidth]{figs/lqr_ref_escalon_delta_parametros_iniciales.png}
-    \caption{Ajuste inicial}
-    \label{fig:lqr_basico}
-  \end{subfigure}
-  \hfill
-  \begin{subfigure}[b]{0.48\linewidth}
-    \centering
-    \includegraphics[width=\linewidth]{figs/lqr_ref_escalon_delta_parametros_finales.png}
-    \caption{Ajuste final}
-    \label{fig:lqr_modificado}
-  \end{subfigure}
-  \caption{Comparación de respuesta al variar los pesos del controlador}
-  \label{fig:lqr_comparacion_parametros}
-\end{figure}
-
-En una maniobra de estacionamiento, donde el vehículo se encuentra detenido y se piden rotaciones amplias de las ruedas delanteras, la respuesta rápida es deseable porque reduce el retardo percibido entre la referencia de dirección y la posición real de las ruedas. Sin embargo, cuando el vehículo circula a velocidad aparece el torque autoalineante $T_a$, que actúa como perturbación mecánica sobre la rueda. Para una referencia de $10^\circ$, esta perturbación produce error de estado estacionario si se utiliza únicamente el LQR sin acción integral, como se observa en la figura \ref{fig:error_estado_estacionario}.
+En la presente sección se somete al modelo matemático a una situación de gran exigencia como es lograr que las ruedas roten hasta su máximo rango de $35^\circ$ a partir de una referencia escalón. En la figura \ref{fig:respuesta_escalon} se muestra la respuesta obtenida para $\delta(t)$, y en la figura \ref{fig:control_escalon} se muestra la señal de control $V_m(t)$ necesaria para lograr dicho seguimiento.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\linewidth]{figs/error_estado_estacionario.png}
-    \caption{Error de estado estacionario ante torque autoalineante}
-    \label{fig:error_estado_estacionario}
+    \includegraphics[width=0.8\linewidth]{figs/RtaDelta_entradaEscalon.png}
+    \caption{Respuesta del ángulo de las ruedas $\delta(t)$ ante una referencia escalón de $35^\circ$}
+    \label{fig:fuerza_resultante_lateral}
 \end{figure}
 
-Este resultado justifica la incorporación de la acción integral en el controlador aumentado, ya que permite corregir el error permanente generado por perturbaciones constantes o lentamente variables.
+Como puede observarse, el sistema logra alcanzar la referencia de $35^\circ$ con un tiempo de establecimiento de $162\mathrm{ms}$ y sin sobrepico, y llega al valor de referencia a los $320\mathrm{ms}$, lo cual representa una velocidad promedio de $110 \, \mathrm{^\circ/s}$
+
 
 \subsection{Cosas a reordenar bien al final de todo}
-
-\subsubsection{Implementación propuesta de \texorpdfstring{$T_a$}{Ta} por rueda}
-
-Del análisis del modelo dinámico se concluye que la variable $\delta$ representa el comportamiento de una rueda delantera representativa, mientras que la cremallera recibe el efecto conjunto de ambas ruedas mediante los términos duplicados en $K_f$. En consecuencia, resulta más consistente modelar el torque autoalineante $T_a$ \textbf{por rueda}, suponiendo que la otra rueda presenta el mismo ángulo y el mismo comportamiento.
-
-La siguiente función de MATLAB implementa esta idea. El modelo bicicleta se utiliza para obtener el ángulo de deriva delantero $\alpha_f$, pero la fuerza lateral y el torque autoalineante se calculan para una única rueda delantera:
-
-\begin{verbatim}
-function [Ta, alpha_f, vy, r] = CalculoTaPorRueda(delta, vel_kmh)
-% CalculoTaPorRueda
-% Calcula el torque autoalineante por rueda delantera,
-% suponiendo que ambas ruedas delanteras tienen el mismo
-% angulo y comportamiento.
-%
-% Entradas:
-%   delta    [rad]   angulo de rueda delantera
-%   vel_kmh  [km/h]  velocidad vehicular
-%
-% Salidas:
-%   Ta       [N*m]   torque autoalineante por rueda
-%   alpha_f  [rad]   slip angle delantero
-%   vy       [m/s]   velocidad lateral CG (steady-state)
-%   r        [rad/s] yaw rate (steady-state)
-
-    % Parametros vehiculo
-    m = 1400;
-    g = 9.80665;
-    L = 2.70;
-    a = 1.20;
-    b = L - a;
-
-    % Rigideces por eje para el modelo bicicleta
-    Cf_axle = 8e4;   % [N/rad]
-    Cr_axle = 8e4;   % [N/rad]
-
-    % Parametros de saturacion / trail
-    mu = 0.90;
-    t0 = 0.08;       % [m]
-    kAlpha = 8.0;
-    Vt = 40;         % [m/s]
-
-    Vx = vel_kmh / 3.6;
-
-    if Vx < 0.5
-        Ta = 0;
-        alpha_f = 0;
-        vy = 0;
-        r = 0;
-        return
-    end
-
-    Vx_eff = max(Vx, 0.5);
-
-    % Modelo bicicleta en regimen estacionario
-    M11 = Cf_axle + Cr_axle;
-    M12 = m * Vx_eff^2 + Cf_axle * a - Cr_axle * b;
-
-    M21 = a * Cf_axle - b * Cr_axle;
-    M22 = a^2 * Cf_axle + b^2 * Cr_axle;
-
-    rhs1 = Cf_axle * Vx_eff * delta;
-    rhs2 = a * Cf_axle * Vx_eff * delta;
-
-    M = [M11, M12; M21, M22];
-    rhs = [rhs1; rhs2];
-
-    sol = M \ rhs;
-    vy = sol(1);
-    r = sol(2);
-
-    % Slip delantero comun a ambas ruedas
-    alpha_f = delta - (vy + a * r) / Vx_eff;
-
-    % Conversion a magnitudes por rueda
-    Cf_wheel = Cf_axle / 2;
-    Fzf_wheel = ((b / L) * m * g) / 2;
-    Fy_max_wheel = mu * Fzf_wheel;
-
-    % Fuerza lateral por rueda con saturacion suave
-    Fy_lin_wheel = Cf_wheel * alpha_f;
-    Fy_wheel = Fy_max_wheel * tanh(Fy_lin_wheel / Fy_max_wheel);
-
-    % Trail efectivo
-    trail = t0 * exp(-kAlpha * abs(alpha_f)) * ...
-            (1 / (1 + (Vx_eff / Vt)^2));
-
-    % Torque autoalineante por rueda
-    Ta = -Fy_wheel * trail;
-end
-\end{verbatim}
-
-Con esta reformulación, el torque autoalineante aplicado en la ecuación de la rueda resulta coherente con una única rueda delantera. Si ambas ruedas se comportan simétricamente, entonces la otra rueda tendrá el mismo valor de torque autoalineante.
 
 \subsubsection{Controlador LQR con acción integral}
 
@@ -861,16 +803,22 @@ Notar que la referencia ha sido quitada de la ley de control ya que se encuentra
 \section*{Referencias}
 \addcontentsline{toc}{section}{Referencias}
 
-Las siguientes referencias se utilizaron para definir parámetros de la planta, validar el actuador, seleccionar el sensor y revisar el modelo de torque autoalineante:
+\subsection*{Parámetros de planta, actuador, perturbaciones y sensor}
 
 \begin{itemize}
     \item \hypertarget{ref:mosrac-u13060}{}\textbf{Mosrac, \textit{U130 Series Frameless Direct Drive Torque Motors}}. Catálogo web utilizado como referencia para el motor equivalente Mosrac U13060 de $48\ \mathrm{V}$. Disponible en: \url{https://www.mosrac.com/products/frameless-direct-drive-torque-motors/u130-series.html}.
 
     \item \hypertarget{ref:taher-2025}{}\textbf{Taher Sachit Taher et al., \textit{Improving the Performance of Steering by Wire Using a Model Predictive Controller Enhanced with Particle Swarm Optimisation}}. Archivo local: \texttt{Papers/Improving\_the\_Performance\_of\_Steering\_by\_Wire\_Usin.pdf}. Al-Khwarizmi Engineering Journal, vol. 21, no. 1, pp. 61--72, 2025. DOI: \url{https://doi.org/10.22153/kej.2025.01.002}.
 
-    \item \hypertarget{ref:mlx90513}{}\textbf{Melexis, \textit{MLX90513 Inductive Position Sensor Interface IC}}. Sensor inductivo automotriz para medición absoluta rotativa o lineal, utilizado como referencia para la medición de posición de cremallera y para el error máximo de medición. Página del producto: \url{https://www.melexis.com/en/product/MLX90513}. Datasheet: \url{https://www.melexis.com/-/media/files/documents/datasheets/mlx90513-datasheet-melexis.pdf}.
+    \item \hypertarget{ref:azizul-2024}{}\textbf{M. A. Azizul, F. Ahmad, J. Karjanto, M. H. Che Hasan y S. Sulaiman, \textit{Modelling, Simulation and Testing of Steer-by-Wire System with Variable Steering Ratio Control Strategy in 14-DOF Full Vehicle Model}}. Archivo local: \texttt{Papers/Azizul - 14 dof model.pdf}. International Journal of Automotive and Mechanical Engineering, vol. 21, no. 4, pp. 11784--11808, 2024. DOI: \url{https://doi.org/10.15282/ijame.21.4.2024.5.0908}.
 
-    \item \textbf{Georg Rill, \textit{First Order Tire Dynamics}}. Disponible en: \url{https://www.researchgate.net/publication/317036997_First_Order_Tire_Dynamics}. De esta fuente se tomó la relación física básica entre torque autoalineante y fuerza lateral, expresada como $T_S = c_o F_y$, donde $c_o$ representa el \textit{pneumatic trail}. Esta idea se utilizó como base para escribir $T_a$ como producto entre fuerza lateral y brazo efectivo del neumático, con signo restaurador.
+    \item \hypertarget{ref:mlx90513}{}\textbf{Melexis, \textit{MLX90513 Inductive Position Sensor Interface IC}}. Sensor inductivo automotriz para medición absoluta rotativa o lineal, utilizado como referencia para la medición de posición de cremallera y para el error máximo de medición. Página del producto: \url{https://www.melexis.com/en/product/MLX90513}. Datasheet: \url{https://www.melexis.com/-/media/files/documents/datasheets/mlx90513-datasheet-melexis.pdf}.
+\end{itemize}
+
+\subsection*{Modelo de torque autoalineante}
+
+\begin{itemize}
+    \item \hypertarget{ref:rill-first-order}{}\textbf{Georg Rill, \textit{First Order Tire Dynamics}}. Disponible en: \url{https://www.researchgate.net/publication/317036997_First_Order_Tire_Dynamics}. De esta fuente se tomó la relación física básica entre torque autoalineante y fuerza lateral, expresada como $T_S = c_o F_y$, donde $c_o$ representa el \textit{pneumatic trail}. Esta idea se utilizó como base para escribir $T_a$ como producto entre fuerza lateral y brazo efectivo del neumático, con signo restaurador.
 
     \item \textbf{ScienceDirect Topics, \textit{Aligning Torque}}. Disponible en: \url{https://www.sciencedirect.com/topics/engineering/aligning-torque}. De esta fuente se extrajo el comportamiento cualitativo esperado del torque autoalineante en neumáticos reales: crecimiento aproximadamente lineal para ángulos de deriva pequeños, aparición de un máximo a bajos ángulos de deriva y disminución posterior al aumentar el deslizamiento lateral. También se utilizó para justificar que el \textit{pneumatic trail} disminuye cuando crece el ángulo de deriva.
 
@@ -880,9 +828,6 @@ Las siguientes referencias se utilizaron para definir parámetros de la planta, 
 
     \item \textbf{Hsu, Laws y Gerdes, \textit{Estimation of Tire Slip Angle and Friction Limits Using Steering Torque}}. Disponible en: \url{https://www.researchgate.net/publication/224603533_Estimation_of_Tire_Slip_Angle_and_Friction_Limits_Using_Steering_Torque}. De esta referencia se utilizó la idea de que la información del torque de dirección está fuertemente vinculada con la evolución del \textit{pneumatic trail}, y que la caída de dicho \textit{trail} es un indicador físicamente consistente del acercamiento a la saturación lateral del neumático.
 \end{itemize}
-
-En conjunto, estas fuentes se utilizaron para justificar que el análisis del torque autoalineante debía realizarse \textbf{por rueda}, suponiendo comportamiento simétrico de ambas ruedas delanteras, y que el modelo debía preservar tanto la dependencia con la fuerza lateral como la disminución del \textit{trail} a medida que aumenta el ángulo de deriva.
-
 
 
 \end{document}
