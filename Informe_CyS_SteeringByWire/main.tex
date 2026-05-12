@@ -591,13 +591,57 @@ Por otro lado, $T_{s,sensor}=10\ \mathrm{ms}$ representa la actualización de la
 
 \subsection{Diseño del observador}
 
-La desviación estándar equivalente del ruido uniforme se utiliza luego para definir la covarianza de medición del observador de Kalman:
+El controlador LQR diseñado previamente requiere realimentación completa de estados. Sin embargo, en una implementación física no resulta práctico medir directamente todas las variables del vector $x(t)$, por este motivo se incorpora un observador de estados, que permite reconstruir el vector completo a partir del modelo de la planta, la entrada aplicada al motor y la medición de $y_c(t)$ disponible del sensor.
+
+El observador continuo se plantea como:
 
 \begin{equation}
-R=\sigma_{yc}^{2}.
+\dot{\hat{x}}(t)
+=
+A\hat{x}(t)+B_cu(t)+L\left(y_s(t)-C_s\hat{x}(t)\right),
 \end{equation}
 
-De esta forma, el ruido inyectado en la simulación y la confianza asignada a la medición dentro del observador quedan definidos de manera coherente.
+donde $\hat{x}(t)$ es el vector de estados estimado, $u(t)=V_m(t)$, $y_s(t)$ es la medición entregada por el sensor de cremallera y $L$ es la ganancia del observador. El término $y_s(t)-C_s\hat{x}(t)$ es la diferencia entre la posición de cremallera medida y la posición de cremallera estimada por el modelo.
+
+Para calcular $L$ se utiliza un observador de Kalman continuo. En MATLAB se define una matriz de covarianza de proceso $Q$ asociada a incertidumbres del modelo y perturbaciones no representadas, y una covarianza de medición $R$ asociada al ruido del sensor. La ganancia se obtiene mediante:
+
+\begin{equation}
+L=\mathrm{lqe}(A,G_w,C_s,Q,R).
+\end{equation}
+
+La matriz $G_w$ se adopta como identidad, de modo que las incertidumbres de proceso puedan actuar sobre todos los estados del modelo:
+
+\begin{equation}
+G_w=I_7.
+\end{equation}
+
+Para $Q$ se utiliza una matriz diagonal cuyos pesos se ajustan para ponderar la confianza relativa en la dinámica de cada estado. En el modelo implementado se adoptaron los siguientes valores:
+
+\begin{equation}
+Q=\mathrm{diag}\left(
+\begin{bmatrix}
+0.1 & 1 & 1 & 5 & 5 & 5 & 5
+\end{bmatrix}
+\right).
+\end{equation}
+
+Aumentar los valores de $Q$ implica asumir mayor incertidumbre en el modelo de proceso, por lo que el observador corrige con mayor rapidez a partir de la medición, aunque puede volverse más sensible al ruido.
+
+Por otro lado, la covarianza de medición se obtiene directamente del modelo de ruido adoptado para el sensor. La desviación estándar equivalente del error uniforme se usa para definir:
+
+\begin{equation}
+R=5\sigma_{yc}^{2}
+=5\left(7.8\times10^{-5}\right)^2
+=3.04\times10^{-8}\ \mathrm{m^2}.
+\end{equation}
+
+El factor multiplicativo aplicado sobre $\sigma_{yc}^{2}$ aumenta la covarianza de medición efectiva, reduciendo la confianza del observador en una medición que contiene error de cuantización, ruido y retención de orden cero. En las simulaciones se observó que utilizar directamente $R=\sigma_{yc}^{2}$ hacía al observador más sensible a la medición discreta y aumentaba la actividad de alta frecuencia, reduciendo la velocidad de simulación. Por este motivo se adoptó $R=5\sigma_{yc}^{2}$, valor que suaviza la estimación y mejora el tiempo de cómputo sin que se detectaran desmejoras apreciables en el seguimiento de $\delta(t)$ ni en las variables eléctricas y mecánicas supervisadas. 
+
+Finalmente, el controlador LQR se implementa utilizando los estados estimados, por lo que la ley de control queda:
+
+\begin{equation}
+u(t)=-K_{\mathrm{lqr}}\hat{x}(t)+k_r r(t).
+\end{equation}
 
 \subsection{Resultados}
 
