@@ -64,32 +64,39 @@
 
 % En la sección \ref{sec:intro}... 
 
-En un sistema de direccionamiento de un automóvil convencional, el conductor induce en el volante una rotación que es transmitida mediante una conexión mecánica hacia las ruedas del automóvil. Una simplificación de dicho mecanismo puede observarse en la figura \ref{fig:dir_convencional}.
+En un sistema de direccionamiento de un automóvil convencional, el conductor induce en el volante una rotación que es transmitida mediante una conexión mecánica hacia las ruedas del automóvil. Una simplificación de dicho mecanismo puede observarse en la figura \ref{fig:sistemas_direccion}.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\linewidth]{figs/Sistema de direccionamiento convencional.png}
-    \caption{Sistema de direccionamiento convencional (simplificado)}
-    \label{fig:dir_convencional}
+    \begin{subfigure}[b]{0.44\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figs/Sistema de direccionamiento convencional.png}
+        \caption{Sistema convencional}
+        \label{fig:dir_convencional}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.50\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figs/SbW Modelo Sencillo.png}
+        \caption{Sistema \textit{Steering-by-Wire}}
+        \label{fig:dir_SbW}
+    \end{subfigure}
+    \caption{Comparación entre un sistema de direccionamiento convencional simplificado y una arquitectura \textit{Steering-by-Wire}.}
+    \label{fig:sistemas_direccion}
 \end{figure}
 
-El sistema de \textit{Dirección por Cable} (\textit{Steering-by-wire} o \textit{SbW}) elimina la columna de dirección convencional que conecta el volante con el mecanismo de rotación de las ruedas, y la reemplaza por una interfaz completamente electrónica, como se ilustra en la figura \ref{fig:dir_SbW}. Un sensor de posición angular ubicado en el volante envía la señal a un controlador, el cual comanda un actuador electromecánico responsable del giro de las ruedas. Adicionalmente, puede integrarse un motor de retroalimentación en el volante que reproduzca las fuerzas generadas en las ruedas, con el objetivo de conservar la sensación de contacto con el terreno.
+El sistema de \textit{Dirección por Cable} (\textit{Steering-by-wire} o \textit{SbW}) elimina la columna de dirección convencional que conecta el volante con el mecanismo de rotación de las ruedas, y la reemplaza por una interfaz completamente electrónica, como se ilustra en la figura \ref{fig:sistemas_direccion}. Un sensor de posición angular ubicado en el volante envía la señal a un controlador, el cual comanda un actuador electromecánico responsable del giro de las ruedas. Adicionalmente, puede integrarse un motor de retroalimentación en el volante que reproduzca las fuerzas generadas en las ruedas, con el objetivo de conservar la sensación de contacto con el terreno.
+
+Como material ilustrativo del funcionamiento de este tipo de arquitecturas, pueden consultarse los videos \href{https://www.youtube.com/watch?v=f5GhTIMtr5I}{\textit{DIRECCION Por Cable: ¿Realmente Funciona? | Steer by wire}} y \href{https://www.youtube.com/watch?v=g1kp8ZzCnPI}{\textit{The Future of Steering Wheels: Is Steer-by-Wire the End of Traditional Steering? | Tech Explained}}.
 
 Este enfoque constituye una innovación relevante en el ámbito automotriz, y presenta múltiples ventajas:
 
 \begin{itemize}
     \item Reducción del peso y la complejidad del sistema, al eliminar componentes mecánicos.
-    \item Mejora en la seguridad, al permitir intervenciones del sistema ante condiciones adversas, como pérdida de adherencia.
+    \item Mejora en la seguridad, al permitir que la dirección se integre con sistemas de control de tracción, estabilidad, frenado asistido, asistencia a la conducción y maniobras autónomas ante condiciones adversas.
     \item Posibilidad de modificar la relación entre el ángulo de giro del volante y el ángulo de las ruedas en función de la velocidad y otras variables, optimizando así la dinámica del vehiculo.
     \item Mayor flexibilidad en el diseño del habitáculo, al no requerir una conexión física entre el volante y el tren delantero.
 \end{itemize}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.6\linewidth]{figs/SbW Modelo Sencillo.png}
-    \caption{Modelo simplificado de SbW}
-    \label{fig:dir_SbW}
-\end{figure}
 
 Cabe destacar que en estos sistemas es de suma importancia la redundancia de los componentes críticos como son el actuador de dirección, sensores, cables que transportan señales y potencia eléctrica; todo con el fin de poder garantizar la seguridad de los tripulantes del vehiculo ante fallas en el sistema.
 
@@ -99,48 +106,31 @@ Cabe destacar que en estos sistemas es de suma importancia la redundancia de los
 El sistema de direccionamiento de las ruedas consiste en un motor eléctrico que acciona la cremallera mediante una transmisión equivalente basada en husillo de bolas. En este tipo de actuador, la rotación del motor se convierte en desplazamiento lineal de la cremallera, la cual acciona las rótulas que permiten la rotación de las ruedas. En la figura \ref{fig:esquema_planta} puede verse una representación simplificada del sistema:
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.4\linewidth]{figs/Esquema_planta.png}
+    \includegraphics[width=0.35\linewidth]{figs/Esquema_planta.png}
     \caption{Esquema simplificado del sistema de dirección del tren delantero.}
     \label{fig:esquema_planta}
 \end{figure}
 
-La ecuación eléctrica del motor de CC es obtenida usando reglas de Kirchoff:
+Para formular el modelo se adopta la siguiente notación: $i_m(t)$ es la corriente del motor, $V_m(t)$ la tensión aplicada, $\theta_m(t)$ y $\omega_m(t)$ la posición y velocidad angular del eje motor, $y_c(t)$ y $v_c(t)$ la posición y velocidad lineal de la cremallera, y $\delta(t)$ y $\psi(t)$ el ángulo y velocidad angular de dirección de la rueda. Los parámetros físicos utilizados se resumen luego en la tabla \ref{tab:parametros_modelo}.
+
+La ecuación eléctrica del motor se obtiene aplicando la ley de tensiones de Kirchhoff:
 \begin{equation}
 L_m \cdot \frac{di_m}{dt} = -R_m \cdot i_m(t) - K_e \cdot \omega_m(t) + V_m(t)
 \label{ec_electrica}
 \end{equation}
 
-Donde:
-\begin{itemize}
-    \item $V_m(t)$: Tensión aplicada al motor ($\mathrm{V}$). Es la entrada del sistema eléctrico.
-    \item $L_m$: Inductancia de la bobina del motor ($\mathrm{H}$).
-    \item $R_m$: Resistencia de la bobina del motor ($\mathrm{\Omega}$).
-    \item $i_m(t)$: Corriente instantánea que circula por la fase del motor ($\mathrm{A}$).
-    \item $K_e$: Constante de fuerza contraelectromotriz ($\mathrm{V \cdot s/rad}$).
-    \item $\omega_m(t)$: Velocidad angular del rotor ($\mathrm{rad/s}$). 
-\end{itemize}
-
-Para el modelado matemático de los mecanismos se utilizan leyes de Newton. Para el eje motor:
+La conversión electromecánica se representa mediante las constantes $K_t$ y $K_e$, por lo que el torque desarrollado por el motor queda dado por $T_m(t)=K_t\,i_m(t)$. Para la transmisión por husillo de bolas se utiliza un radio cinemático equivalente $r_p$, calculado a partir del avance lineal por vuelta $p_{bs}$:
 \begin{equation}
-J_m \cdot \frac{d\omega(t)}{dt} = T_m(t) - B_m \cdot \omega_m(t) - K_{a} \left[ \theta_m(t) - \frac{y_c(t)}{r_p} \right]
+r_p = \frac{p_{bs}}{2\pi}
+\label{ec_rp_ball_screw}
+\end{equation}
+De esta forma, la relación cinemática ideal entre el eje motor y la cremallera queda dada por $y_c(t)=r_p\,\theta_m(t)$.
+
+La dinámica mecánica se obtiene aplicando las leyes de Newton al eje motor, a la cremallera y al giro de la rueda. Para el eje motor:
+\begin{equation}
+J_m \cdot \frac{d\omega_m(t)}{dt} = T_m(t) - B_m \cdot \omega_m(t) - K_{a} \left[ \theta_m(t) - \frac{y_c(t)}{r_p} \right]
 \label{ec_motor}
 \end{equation}
-
-Donde:
-\begin{itemize}
-    \item $\theta_m(t)$: Posición angular del rotor ($\mathrm{rad}$). Relacionada con $\omega_m$ mediante: $\frac{d\theta_m(t)}{dt} = \omega(t)$.
-    \item $J_m$: Momento de inercia del rotor ($\mathrm{kg \cdot m^2}$).
-    \item $T_m(t)$: Par generado por el motor ($\mathrm{N \cdot m}$). Se considera proporcional a la corriente mediante la constante de par motor $K_t$ ($\mathrm{\frac{N \cdot m}{A}}$). Luego: $T_m(t) = K_t \cdot i_m(t)$.
-    \item $B_m$: Coeficiente de fricción viscosa del eje ($\mathrm{\frac{N \cdot m \cdot s}{rad}}$). Modela las pérdidas mecánicas por fricción.
-    \item $K_{a}$: Constante de rigidez del acoplamiento elástico ($\mathrm{\frac{N \cdot m}{rad}}$). Representa la elasticidad equivalente de la transmisión entre el eje motor y la cremallera. Si este valor tendiera a infinito, se estaría considerando un acoplamiento rígido ideal. Se utiliza este componente elástico para representar que la transmisión real no es perfectamente rígida.
-    \item $y_c(t)$: Desplazamiento lineal de la cremallera ($\mathrm{m}$).
-    \item $r_p$: Radio cinemático equivalente de la transmisión por husillo de bolas ($\mathrm{m/rad}$). Representa la conversión entre rotación del motor y desplazamiento lineal de cremallera. Como en este modelo el motor y el husillo se acoplan con relación $1:1$, se calcula a partir del avance lineal del husillo por vuelta $p_{bs}$:
-    \begin{equation}
-    r_p = \frac{p_{bs}}{2\pi}
-    \label{ec_rp_ball_screw}
-    \end{equation}
-    De esta manera, la relación cinemática ideal queda dada por $y_c(t)=r_p\,\theta_m(t)$.
-\end{itemize}
 
 La ecuación dinámica de la cremallera es:
 \begin{equation}
@@ -148,61 +138,44 @@ M_{cr} \cdot \frac{dv_c(t)}{dt} = -\frac{2 K_f}{r_l} \left[ \frac{y_c(t)}{r_l} -
 \label{ec_cremallera}
 \end{equation}
 
-Donde:
-\begin{itemize}
-    \item $M_{cr}$: Masa de la cremallera ($\mathrm{kg}$).
-    \item $v_c(t)$: Velocidad lineal de la cremallera ($\mathrm{\frac{m}{s}}$). Se relaciona con $y_c$ mediante: $\frac{dy_c(t)}{dt}=v_c(t)$
-    \item $K_f$: Rigidez del enlace entre la cremallera y la rueda ($\mathrm{\frac{N \cdot m}{rad}}$). Notar que el término figura duplicado en la ecuación debido a la contribución de cada neumático.
-   \item $\delta(t)$: Ángulo de giro del neumático medido desde la posición de avance rectilíneo del vehículo ($\mathrm{rad}$).
-    \item $r_l$: distancia horizontal entre el eje del pivote y el centro de la rueda($m$). Relaciona desplazamientos lineales de la cremallera, con rotaciones en la rueda mediante $\delta(t) \cdot r_l =  y_c(t)$, para ángulos pequeños de $\delta(t)$.
-    \item $F_f(t)$: Fuerza de fricción estática en la cremallera ($\mathrm{N}$).
-    \item $B_{cr}$: Coeficiente de fricción viscosa de la cremallera ($\mathrm{\frac{N \cdot s}{m}}$).
-\end{itemize}
-
 Finalmente, la ecuación dinámica de cada rueda está dada por:
 \begin{equation}
-J_f \cdot \frac{d\psi_f(t)}{dt} = -K_f \left[ \delta(t) - \frac{y_c(t)}{r_l} \right] - B_f \cdot \omega_f(t) - T_f(t) - T_a(t)
+J_f \cdot \frac{d\psi(t)}{dt} = -K_f \left[ \delta(t) - \frac{y_c(t)}{r_l} \right] - B_f \cdot \psi(t) - T_f(t) - T_a(t)
 \label{ec_rueda}
 \end{equation}
 
-Donde:
-\begin{itemize}
-    \item $J_f$: Momento de inercia de la rueda ($\mathrm{kg \cdot m^2}$).
-    \item $\psi_f(t)$: Velocidad angular de giro del neumático en el plano de dirección ($\mathrm{rad/s}$). Relacionado con $\delta(t)$ mediante: $\frac{d\delta_f(t)}{dt} = \psi(t)$
-    \item $T_f(t)$: Torque de fricción estática del mecanismo de dirección ($\mathrm{N \cdot m}$).
-    \item $T_a(t)$: Torque de autoalineamiento generado por las deformaciones del neumático al rotar mientras el auto está en velocidad no nula($\mathrm{N \cdot m}$).
-\end{itemize}
+En las ecuaciones anteriores, $K_a$ representa la rigidez equivalente de la transmisión entre motor y cremallera, mientras que $K_f$ representa la rigidez del enlace entre cremallera y ruedas. El factor $2$ en la ecuación de la cremallera contempla la contribución de ambas ruedas delanteras. Además, $r_l$ relaciona el desplazamiento lineal de la cremallera con el giro de rueda mediante $y_c(t)\simeq r_l\,\delta(t)$ para ángulos pequeños. Las perturbaciones externas se agrupan en la fuerza de fricción de cremallera $F_f(t)$, el torque de fricción de dirección $T_f(t)$ y el torque autoalineante del neumático $T_a(t)$.
 
-En la tabla \ref{tab:parametros_modelo} pueden verse un resumen de todos los parámetros que intervienen en el sistema, junto a los valores que se les ha sido asignados.
+En la tabla \ref{tab:parametros_modelo} puede verse un resumen de los parámetros que intervienen en el sistema, junto con los valores asignados.
 
 \begin{table}[H]
 \small
 \centering
 \caption{Parámetros del modelo de dirección por cable}
 \label{tab:parametros_modelo}
-\begin{tabular}{l c c}
+\begin{tabular}{l l c c}
 \toprule
-\textbf{Símbolo} & \textbf{Valor} & \textbf{Unidad} \\
+\textbf{Símbolo} & \textbf{Descripción} & \textbf{Valor} & \textbf{Unidad} \\
 \midrule
-$L_m$     & $0.42 \times 10^{-3}$ & $\mathrm{H}$ \\
-$R_m$     & $0.135$   & $\mathrm{\Omega}$ \\
-$B_m$     & $1 \times 10^{-3}$ & $\mathrm{N \cdot m \cdot s / rad}$ \\
-$J_m$     & $1.0 \times 10^{-3}$ & $\mathrm{kg \cdot m^2}$ \\
-$K_e$     & $0.6$     & $\mathrm{V \cdot s / rad}$ \\
-$K_t$     & $0.6$     & $\mathrm{N \cdot m / A}$ \\
-$V_{m,\max}$ & $48$   & $\mathrm{V}$ \\
+$L_m$     & Inductancia del motor & $0.42 \times 10^{-3}$ & $\mathrm{H}$ \\
+$R_m$     & Resistencia del motor & $0.135$   & $\mathrm{\Omega}$ \\
+$B_m$     & Fricción viscosa del motor & $1 \times 10^{-3}$ & $\mathrm{N \cdot m \cdot s / rad}$ \\
+$J_m$     & Inercia del rotor & $1.0 \times 10^{-3}$ & $\mathrm{kg \cdot m^2}$ \\
+$K_e$     & Constante contraelectromotriz & $0.6$     & $\mathrm{V \cdot s / rad}$ \\
+$K_t$     & Constante de torque & $0.6$     & $\mathrm{N \cdot m / A}$ \\
+$V_{m,\max}$ & Tensión máxima aplicada & $48$   & $\mathrm{V}$ \\
 \midrule
-$K_a$     & $3500$    & $\mathrm{N \cdot m / rad}$ \\
+$K_a$     & Rigidez del acoplamiento torsional & $3500$    & $\mathrm{N \cdot m / rad}$ \\
 \midrule
-$B_{cr}$  & $1.032$   & $\mathrm{N \cdot s / m}$ \\
-$M_{cr}$  & $2.0$     & $\mathrm{kg}$ \\
-$r_l$     & $0.115$   & $\mathrm{m/rad}$ \\
-$p_{bs}$  & $32 \times 10^{-3}$ & $\mathrm{m/rev}$ \\
-$r_p$     & $5.09 \times 10^{-3}$ & $\mathrm{m/rad}$ \\
+$B_{cr}$  & Fricción viscosa de cremallera & $1.032$   & $\mathrm{N \cdot s / m}$ \\
+$M_{cr}$  & Masa equivalente de cremallera & $2.0$     & $\mathrm{kg}$ \\
+$r_l$     & Brazo cinemático rueda-cremallera & $0.115$   & $\mathrm{m/rad}$ \\
+$p_{bs}$  & Avance del husillo de bolas & $32 \times 10^{-3}$ & $\mathrm{m/rev}$ \\
+$r_p$     & Radio equivalente del husillo & $5.09 \times 10^{-3}$ & $\mathrm{m/rad}$ \\
 \midrule
-$B_f$     & $30$      & $\mathrm{N \cdot m \cdot s / rad}$ \\
-$K_f$     & $26000$   & $\mathrm{N \cdot m / rad}$ \\
-$I_f$     & $0.270$   & $\mathrm{kg \cdot m^2}$ \\
+$B_f$     & Fricción viscosa de rueda & $30$      & $\mathrm{N \cdot m \cdot s / rad}$ \\
+$K_f$     & Rigidez del enlace a rueda & $26000$   & $\mathrm{N \cdot m / rad}$ \\
+$I_f$     & Inercia de giro de rueda & $0.270$   & $\mathrm{kg \cdot m^2}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -218,12 +191,12 @@ Teniendo en cuenta las ecuaciones \ref{ec_electrica}, \ref{ec_motor}, \ref{ec_cr
 \left\{
 \begin{aligned}
 \frac{di_m(t)}{dt} &= \frac{1}{L_m} \cdot  \left[-R_m \cdot i_m(t) - K_e \cdot \omega_m(t) + V_m(t) \right] \\
-\frac{d\theta_m(t)}{dt} &= \omega(t) \\
+\frac{d\theta_m(t)}{dt} &= \omega_m(t) \\
 \frac{d\omega_m(t)}{dt} &= \frac{1}{J_m} \cdot \left\{T_m(t) - B_m \cdot \omega_m(t) - K_{a} \left[ \theta_m(t) - \frac{y_c(t)}{r_p} \right] \right\} \\
 \frac{dy_c(t)}{dt} &= v_c(t) \\
 \frac{dv_c(t)}{dt} &= \frac{1}{M_{cr}} \cdot \left\{ -\frac{2 K_f}{r_l} \left[ \frac{y_c(t)}{r_l} - \delta(t) \right] - F_f(t) - B_{cr} \cdot v_c(t) + \frac{K_a}{r_p} \left[ \theta_m(t) - \frac{y_c(t)}{r_p} \right] \right\} \\
-\frac{d\delta_f(t)}{dt} &= \psi(t) \\
-\frac{d\psi_f(t)}{dt} &= \frac{1}{J_f} \cdot \left\{ -K_f \left[ \delta(t) - \frac{y_c(t)}{r_l} \right] - B_f \cdot \omega_f(t) - T_f(t) - T_a(t) \right\}
+\frac{d\delta(t)}{dt} &= \psi(t) \\
+\frac{d\psi(t)}{dt} &= \frac{1}{J_f} \cdot \left\{ -K_f \left[ \delta(t) - \frac{y_c(t)}{r_l} \right] - B_f \cdot \psi(t) - T_f(t) - T_a(t) \right\}
 \end{aligned}
 \right.
 \label{sistema_completo}
@@ -334,7 +307,7 @@ A continuación se enumeran las principales simplificaciones y supuestos realiza
     \item Se considera que ambas ruedas delanteras giran con el mismo ángulo $\delta(t)$. Esta simplificación sigue al modelo cinemático tipo bicicleta. En la realidad, la geometría de dirección hace que las ruedas giren con ángulos distintos para respetar la condición de Ackerman. En la figura \ref{fig:modelo_ackerman} se ve un modelo cinemático que contempla este fenómeno:
     \begin{figure}[H]
         \centering
-        \includegraphics[width=0.5\linewidth]{figs/modelo_ackerman.png}
+        \includegraphics[width=0.4\linewidth]{figs/modelo_ackerman.png}
         \caption{Modelo cinemático de Ackerman}
         \label{fig:modelo_ackerman}
     \end{figure}
@@ -345,7 +318,7 @@ A continuación se enumeran las principales simplificaciones y supuestos realiza
 
     \item La transmisión motor-cremallera se representa mediante un radio cinemático equivalente $r_p$ asociado al husillo de bolas. No se modelan explícitamente la tuerca, el contacto entre bolas y pistas, la eficiencia variable, el juego mecánico ni posibles pérdidas internas del husillo.
 
-    \item La elasticidad equivalente entre motor y cremallera se modela mediante una rigidez lineal $K_a$. No se incluyen deformaciones plásticas, rigidez no lineal ni modos flexibles de la transmisión.
+    \item La elasticidad equivalente entre motor y cremallera se modela mediante un acoplamiento torsional con rigidez lineal $K_a$. No se incluyen deformaciones plásticas, rigidez no lineal ni modos flexibles de la transmisión.
 
     \item Las fricciones viscosas del motor, la cremallera y la rueda se incluyen dentro de la dinámica lineal. Las componentes secas o tipo Coulomb se representan como perturbaciones externas $F_f(t)$ y $T_f(t)$, por lo que no modifican la matriz $A$. Sus valores se consideran constantes y no se modela su variación con la velocidad, la temperatura ni el régimen de operación.
 
@@ -367,14 +340,14 @@ En la figura \ref{fig:simscape_vs_ss_diagrama} se ve cómo se llevó a cabo el d
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\linewidth]{figs/simscape_SS_diagrama.png}
+    \includegraphics[width=1\linewidth]{figs/simscape_SS_diagrama.png}
     \caption{Diseño del modelo en SimScape y en Espacio de Estados}
     \label{fig:simscape_vs_ss_diagrama}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.75\linewidth]{figs/simscape vs SS.png}
+    \includegraphics[width=0.6\linewidth]{figs/simscape vs SS.png}
     \caption{Variación de $\delta(t)$ con una entrada escalón $V_m = 1 \mathrm{V}$ }
     \label{fig:simscape_vs_ss}
 \end{figure}
@@ -680,9 +653,7 @@ u(t)=V_m^{*}(t).
 
 Esta simplificación implica que no se modelan de forma explícita el inversor, el PWM, la dinámica interna del driver ni los retardos asociados a la electrónica de potencia.
 
-La elección de un actuador de $48\ \mathrm{V}$ se considera compatible con arquitecturas automotrices modernas, donde los sistemas de baja tensión extendida de $48\ \mathrm{V}$ se utilizan para alimentar cargas de mayor potencia que las disponibles en una red tradicional de $12\ \mathrm{V}$, manteniendo al mismo tiempo un nivel de tensión inferior al de los sistemas de alto voltaje. Esta tendencia se observa, por ejemplo, en sistemas mild-hybrid y redes auxiliares de potencia de \hyperlink{ref:bosch-48v}{Bosch}. En este trabajo se adopta este nivel de tensión para disponer de mayor potencia eléctrica en el actuador de ruedas sin introducir una arquitectura de alto voltaje.
-
-Sin embargo, el actuador real no puede aplicar una tensión arbitraria. Por este motivo, la tensión efectiva queda limitada por la saturación física del bus de alimentación, adoptada como $\pm48\ \mathrm{V}$:
+La elección de un actuador de $48\ \mathrm{V}$ se considera compatible con arquitecturas automotrices modernas, donde sistemas de $48\ \mathrm{V}$ se utilizan para alimentar cargas de mayor potencia que las disponibles en una red tradicional de $12\ \mathrm{V}$. Esta tendencia se observa, por ejemplo, en sistemas híbiridos como el de \hyperlink{ref:bosch-48v}{Bosch}. En este trabajo se adopta este nivel de tensión para disponer de mayor potencia eléctrica en el actuador. Por este motivo, la tensión efectiva queda limitada por la saturación física del bus de alimentación adoptada:
 
 \begin{equation}
 V_m(t)=
@@ -755,7 +726,7 @@ El torque de autoalineamiento $T_a$ aparece cuando el neumático desarrolla fuer
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.35\linewidth]{figs/fuerza_resultante_lateral.png}
+    \includegraphics[width=0.3\linewidth]{figs/fuerza_resultante_lateral.png}
     \caption{Fuerza resultante lateral debido a una rotación de la rueda en sentido horario}
     \label{fig:fuerza_resultante_lateral}
 \end{figure}
@@ -865,7 +836,7 @@ Como se observa en la tabla \ref{tab:validacion_motor_trapezoidal}, la referenci
 
 Como puede observarse en la gráfica de $V_m$, el controlador LQR fue ajustado para aprovechar al máximo la capacidad disponible del actuador, incluso cuando esto implica alcanzar la saturación de tensión. Este criterio de diseño se adoptó porque el sistema está orientado a vehículos tripulados, donde se prioriza la seguridad y resulta necesario que el conductor pueda realizar maniobras rápidas y precisas ante situaciones de emergencia.
 
-\subsubsection{Efecto de perturbaciones}
+\subsubsection{Efecto de perturbaciones con referencia a \texorpdfstring{$35^\circ$}{35°}}
 
 \begin{figure}[H]
     \centering
@@ -874,9 +845,9 @@ Como puede observarse en la gráfica de $V_m$, el controlador LQR fue ajustado p
     \label{fig:perturbaciones_trapezoidal}
 \end{figure}
 
-En los gráficos de $F_f$ y $T_f$ se observa que las fricciones de cremallera y pivote de rueda alcanzan sus valores máximos durante el movimiento continuo en una dirección. Al llegar a la referencia, el controlador genera pequeñas correcciones de tensión para compensar estas fricciones y mantener el seguimiento de la consigna. Esto se debe a que las fricciones secas, aunque fueron suavizadas mediante funciones arcotangente, siguen actuando como perturbaciones no lineales cerca del equilibrio.
+En los gráficos de $F_f$ y $T_f$ se observa que las fricciones de cremallera y pivote de rueda alcanzan sus valores máximos durante el movimiento continuo en una dirección. Una vez alcanzada la referencia, el controlador realiza pequeñas correcciones de tensión para compensar estas perturbaciones y sostener la posición de equilibrio. Aunque las fricciones secas fueron suavizadas mediante funciones arcotangente, siguen comportándose como cargas no lineales alrededor de velocidad nula.
 
-Por otro lado, el torque autoalineante $T_a$ alcanza un valor máximo de $72\ \mathrm{N\,m}$ durante la maniobra. Para su cálculo se utilizó una velocidad fija de $40\ \mathrm{km/h}$, por lo que representa una perturbación significativa aplicada durante el seguimiento de la referencia.
+Por otro lado, el torque autoalineante $T_a$ alcanza un valor máximo de $72\ \mathrm{N\,m}$ durante la maniobra. Luego cae prácticamente a cero porque la referencia de $35^\circ$ representa un giro muy grande para una velocidad longitudinal fija de $40\ \mathrm{km/h}$. En el modelo utilizado, al aumentar el ángulo de deriva la fuerza lateral tiende a saturarse y el \textit{pneumatic trail} efectivo disminuye exponencialmente. Por lo tanto, el producto $T_a=F_{y,\mathrm{wheel}}\,t_{\mathrm{eff}}$ presenta un máximo y luego decrece. Esta caída no debe interpretarse como ausencia real de esfuerzo en el neumático, sino como la simplificación adoptada para representar que, a grandes ángulos de deriva, el neumático pierde agarre y el torque autoalineante pierde capacidad restauradora (efecto de subviraje). En este caso en particular, el vehiculo dejaria de rotar por mas que las ruedas hayan rotado.
 
 \begin{figure}[H]
     \centering
@@ -886,6 +857,28 @@ Por otro lado, el torque autoalineante $T_a$ alcanza un valor máximo de $72\ \m
 \end{figure}
 
 Como puede verse en la figura \ref{fig:esfuerzo_trapezoidal}, la fuerza $F_{cr}$ y el torque $T_{fw}$ aplicados sobre la cremallera y la rueda son significativamente superiores a las perturbaciones modeladas. Además, el valor máximo de $F_{cr}$ se mantiene por debajo del límite de fuerza activa declarado para el \hyperlink{ref:schaeffler-rwa}{Road Wheel Actuator de Schaeffler}, que es de hasta $20\ \mathrm{kN}$. Por lo tanto, el actuador cuenta con margen suficiente para compensar estos efectos y el controlador logra mantener un seguimiento adecuado de la referencia.
+
+\subsubsection{Efecto de perturbaciones con referencia a \texorpdfstring{$5^\circ$}{5°}}
+
+Para analizar un caso más representativo de una maniobra moderada, se repite la simulación con una referencia trapezoidal de $5^\circ$ y velocidad longitudinal fija de $40\ \mathrm{km/h}$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{figs/perturbaciones_5deg.png}
+    \caption{Perturbaciones $F_f$, $T_f$ y $T_a$ durante la respuesta a referencia trapezoidal de $5^\circ$}
+    \label{fig:perturbaciones_5deg}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{figs/rta_5deg.png}
+    \caption{Respuesta $\delta(t)$ y $y_c(t)$ ante una referencia trapezoidal de $5^\circ$}
+    \label{fig:rta_5deg}
+\end{figure}
+
+En este caso el ángulo de deriva permanece dentro de una zona donde el modelo no lleva al neumático a saturación lateral severa. Por ese motivo, la fuerza lateral y el \textit{pneumatic trail} efectivo alcanzan valores estacionarios no nulos cuando $\delta(t)$ se estabiliza. Como ambos términos quedan aproximadamente constantes, el torque autoalineante también converge a un valor constante, en este caso de aproximadamente $56.4\ \mathrm{N\,m}$. Esta perturbación sostenida introduce un error estacionario cercano a $0.6^\circ$ en el seguimiento de la referencia.
+
+No se incorporó acción integral en el controlador final porque, en una aplicación de dirección, la referencia es generada de manera continua por el conductor o por un sistema de asistencia, y no suele permanecer fija durante largos intervalos como en un problema clásico de regulación. Además, en las pruebas realizadas la acción integral introdujo retrasos apreciables, especialmente cuando el actuador trabajaba cerca de la saturación: en esa condición, el integrador acumula error mientras el sistema no puede responder a la tensión demandada. Para este trabajo se priorizó una respuesta rápida y limitada por las capacidades físicas del actuador, aceptando un pequeño error estacionario ante perturbaciones sostenidas.
 
 \subsubsection{Simulación en Unity}
 
