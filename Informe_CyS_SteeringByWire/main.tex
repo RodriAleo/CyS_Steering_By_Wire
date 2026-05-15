@@ -748,9 +748,18 @@ y el torque autoalineante queda dado por
 \begin{equation}
 T_a=F_{y,\mathrm{wheel}}\,t_{\mathrm{eff}}.
 \end{equation}
-En el modelo se adoptaron $t_0=0.08\ \mathrm{m}$, $k_{\alpha}=8$ y $V_t=40\ \mathrm{m/s}$. Para velocidades menores a $0.5\ \mathrm{m/s}$ se impone $T_a=0$, ya que en una maniobra prácticamente detenida no se genera una fuerza lateral estacionaria representativa. Esta simplificación permite introducir el efecto restaurador principal del neumático sin aumentar de forma significativa la complejidad del modelo.
+En el modelo se adoptaron $t_0=0.08\ \mathrm{m}$, $k_{\alpha}=8$, mientras que la velocidad $V_t\ \mathrm{[m/s]}$ puede ser variable. Para velocidades menores a $0.5\ \mathrm{m/s}$ se impone $T_a=0$, ya que en una maniobra prácticamente detenida no se genera una fuerza lateral estacionaria representativa. Esta simplificación permite introducir el efecto restaurador principal del neumático sin aumentar de forma significativa la complejidad del modelo.
 
 \subsection{Resultados}
+
+A continuación se muestra una imágen con la disposición de los bloques que conforman a la simulacion en Simulink:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{figs/Simulink_final.png}
+    \caption{Interconexión de bloques en Simulink}
+    \label{fig:Simulink_final}
+\end{figure}
 
 \subsubsection{Referencia escalón}
 
@@ -801,9 +810,35 @@ Para comparar con una consigna más realista, se propone repetir la simulación 
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\linewidth]{figs/rtaDelta_entradaTrapezoidal.png}
-    \caption{Respuesta $\delta(t)$ y $y_c(t)$ ante una referencia trapezoidal de $35^\circ$}
+    \begin{subfigure}[t]{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figs/rtaDelta_entradaTrapezoidal.png}
+        \caption{Respuesta completa.}
+        \label{fig:respuesta_trapezoidal_completa}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figs/rtaDelta_entradaTrapezoidalZoom.png}
+        \caption{Detalle de la respuesta.}
+        \label{fig:respuesta_trapezoidal_zoom}
+    \end{subfigure}
+    \caption{Respuesta $\delta(t)$ ante una referencia trapezoidal de $35^\circ$.}
     \label{fig:respuesta_trapezoidal}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{figs/perturbaciones_entradaTrapezoidal.png}
+    \caption{Perturbaciones $F_f$, $T_f$ y $T_a$ durante la respuesta a referencia trapezoidal de $35^\circ$}
+    \label{fig:perturbaciones_trapezoidal}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{figs/Esfuerzo_entradaTrapezoidal.png}
+    \caption{Fuerza $F_{cr}$ y torque $T_{fw}$ efectivos aplicados sobre cremallera y rueda, respectivamente.}
+    \label{fig:esfuerzo_trapezoidal}
 \end{figure}
 
 \begin{figure}[H]
@@ -823,11 +858,11 @@ Para comparar con una consigna más realista, se propone repetir la simulación 
 \textbf{Magnitud} & \textbf{Valor obtenido} & \textbf{Límite admisible} \\
 \midrule
 $\max(|V_m|)$ & $48\ \mathrm{V}$ & $48\ \mathrm{V}$ \\
-$\max(|i_m|)$ & $34.0\ \mathrm{A}$ & $70\ \mathrm{A}$ \\
-$i_{m,\mathrm{RMS}}$ & $11.1\ \mathrm{A}$ & $30\ \mathrm{A}$ \\
-$\max(|T_m|)$ & $20.4\ \mathrm{N\,m}$ & $40\ \mathrm{N\,m}$ \\
-$T_{m,\mathrm{RMS}}$ & $6.6\ \mathrm{N\,m}$ & $18\ \mathrm{N\,m}$ \\
-$\max(|\omega_m|)$ & $757\ \mathrm{rpm}$ & $800\ \mathrm{rpm}$ \\
+$\max(|i_m|)$ & $42.6\ \mathrm{A}$ & $70\ \mathrm{A}$ \\
+$i_{m,\mathrm{RMS}}$ & $13.5\ \mathrm{A}$ & $30\ \mathrm{A}$ \\
+$\max(|T_m|)$ & $25.6\ \mathrm{N\,m}$ & $40\ \mathrm{N\,m}$ \\
+$T_{m,\mathrm{RMS}}$ & $8.1\ \mathrm{N\,m}$ & $18\ \mathrm{N\,m}$ \\
+$\max(|\omega_m|)$ & $780\ \mathrm{rpm}$ & $800\ \mathrm{rpm}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -838,23 +873,11 @@ Como puede observarse en la gráfica de $V_m$, el controlador LQR fue ajustado p
 
 \subsubsection{Efecto de perturbaciones con referencia a \texorpdfstring{$35^\circ$}{35°}}
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=1\linewidth]{figs/perturbaciones_entradaTrapezoidal.png}
-    \caption{Perturbaciones $F_f$, $T_f$ y $T_a$ durante la respuesta a referencia trapezoidal de $35^\circ$}
-    \label{fig:perturbaciones_trapezoidal}
-\end{figure}
+
 
 En los gráficos de $F_f$ y $T_f$ se observa que las fricciones de cremallera y pivote de rueda alcanzan sus valores máximos durante el movimiento continuo en una dirección. Una vez alcanzada la referencia, el controlador realiza pequeñas correcciones de tensión para compensar estas perturbaciones y sostener la posición de equilibrio. Aunque las fricciones secas fueron suavizadas mediante funciones arcotangente, siguen comportándose como cargas no lineales alrededor de velocidad nula.
 
 Por otro lado, el torque autoalineante $T_a$ alcanza un valor máximo de $72\ \mathrm{N\,m}$ durante la maniobra. Luego cae prácticamente a cero porque la referencia de $35^\circ$ representa un giro muy grande para una velocidad longitudinal fija de $40\ \mathrm{km/h}$. En el modelo utilizado, al aumentar el ángulo de deriva la fuerza lateral tiende a saturarse y el \textit{pneumatic trail} efectivo disminuye exponencialmente. Por lo tanto, el producto $T_a=F_{y,\mathrm{wheel}}\,t_{\mathrm{eff}}$ presenta un máximo y luego decrece. Esta caída no debe interpretarse como ausencia real de esfuerzo en el neumático, sino como la simplificación adoptada para representar que, a grandes ángulos de deriva, el neumático pierde agarre y el torque autoalineante pierde capacidad restauradora (efecto de subviraje). En este caso en particular, el vehiculo dejaria de rotar por mas que las ruedas hayan rotado.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=1\linewidth]{figs/Esfuerzo_entradaTrapezoidal.png}
-    \caption{Fuerza $F_{cr}$ y torque $T_{fw}$ efectivos aplicados sobre cremallera y rueda, respectivamente.}
-    \label{fig:esfuerzo_trapezoidal}
-\end{figure}
 
 Como puede verse en la figura \ref{fig:esfuerzo_trapezoidal}, la fuerza $F_{cr}$ y el torque $T_{fw}$ aplicados sobre la cremallera y la rueda son significativamente superiores a las perturbaciones modeladas. Además, el valor máximo de $F_{cr}$ se mantiene por debajo del límite de fuerza activa declarado para el \hyperlink{ref:schaeffler-rwa}{Road Wheel Actuator de Schaeffler}, que es de hasta $20\ \mathrm{kN}$. Por lo tanto, el actuador cuenta con margen suficiente para compensar estos efectos y el controlador logra mantener un seguimiento adecuado de la referencia.
 
