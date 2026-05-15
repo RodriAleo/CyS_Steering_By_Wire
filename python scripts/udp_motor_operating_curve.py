@@ -3,8 +3,10 @@
 Realtime torque-speed operating point viewer for Simulink UDP output.
 
 Expected UDP payload:
-  - preferred: five binary doubles [rpm_m, Tm, delta_deg, delta_ref_deg, tiempo],
+  - preferred: seven binary doubles
+    [rpm_m, Tm, delta_deg, delta_ref_deg, tiempo, Vm, im],
     little-endian or native endian
+  - also accepted: five binary doubles [rpm_m, Tm, delta_deg, delta_ref_deg, tiempo]
   - also accepted: two binary doubles [rpm_m, Tm] for the torque-speed plot only
   - also accepted: text such as "rpm,Tm,delta,delta_ref,time"
 
@@ -13,7 +15,7 @@ Default Simulink setup:
                            Use the WSL IP if Simulink runs on Windows and this
                            script runs inside WSL.
   UDP Send remote port:    5010
-  Signal vector:           [rpm_m; Tm; delta_deg; delta_ref_deg; tiempo]
+  Signal vector:           [rpm_m; Tm; delta_deg; delta_ref_deg; tiempo; Vm; im]
 
 Close the plot window to stop the program.
 """
@@ -29,15 +31,12 @@ from dataclasses import dataclass
 
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-from matplotlib.widgets import CheckButtons, TextBox
 
-
-def maybe_iter(value):
-    if value is None:
-        return []
-    if isinstance(value, (list, tuple)):
-        return value
-    return [value]
+VM_LIMIT = 48.0
+IM_CONT_LIMIT = 30.0
+IM_PEAK_LIMIT = 70.0
+TRACE_WINDOW_S = 2.0
+UPDATE_INTERVAL_MS = 30
 
 
 @dataclass
@@ -48,10 +47,21 @@ class Sample:
     delta: float | None = None
     delta_ref: float | None = None
     sim_time: float | None = None
+    vm: float | None = None
+    im: float | None = None
 
 
 def parse_packet(packet: bytes) -> tuple[float, ...] | None:
     """Return common Simulink UDP payload formats."""
+    if len(packet) >= 56:
+        for fmt in ("<7d", "=7d", ">7d"):
+            try:
+                values = struct.unpack(fmt, packet[:56])
+            except struct.error:
+                continue
+            if plausible_values(values):
+                return values
+
     if len(packet) >= 40:
         for fmt in ("<5d", "=5d", ">5d"):
             try:
@@ -71,6 +81,15 @@ def parse_packet(packet: bytes) -> tuple[float, ...] | None:
                 return values
 
     if len(packet) >= 8:
+        if len(packet) >= 28:
+            for fmt in ("<7f", "=7f", ">7f"):
+                try:
+                    values = struct.unpack(fmt, packet[:28])
+                except struct.error:
+                    continue
+                if plausible_values(values):
+                    return tuple(float(value) for value in values)
+
         for fmt in ("<2f", "=2f", ">2f"):
             try:
                 values = struct.unpack(fmt, packet[:8])
@@ -86,6 +105,9 @@ def parse_packet(packet: bytes) -> tuple[float, ...] | None:
         values = [float(part) for part in text.split()]
     except ValueError:
         return None
+
+    if len(values) >= 7 and plausible_values(values[:7]):
+        return tuple(values[:7])
 
     if len(values) >= 5 and plausible_values(values[:5]):
         return tuple(values[:5])
@@ -124,7 +146,6 @@ class UdpMotorCurveApp:
         host: str,
         port: int,
         stale_timeout_s: float,
-        default_window_s: float,
         max_points: int,
     ) -> None:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -133,21 +154,23 @@ class UdpMotorCurveApp:
         self.sock.setblocking(False)
 
         self.stale_timeout_s = stale_timeout_s
-        self.window_s = default_window_s
-        self.keep_last_seconds = False
+        self.window_s = TRACE_WINDOW_S
+        self.keep_last_seconds = True
         self.samples: deque[Sample] = deque(maxlen=max_points)
         self.last_packet_time: float | None = None
         self.stream_stopped = False
         self.running = True
 
-        self.fig, (self.ax_motor, self.ax_delta) = plt.subplots(
-            2,
+        self.update_interval_ms = UPDATE_INTERVAL_MS
+
+        self.fig, (self.ax_motor, self.ax_delta, self.ax_vm, self.ax_im) = plt.subplots(
+            4,
             1,
-            figsize=(10, 7.5),
-            gridspec_kw={"height_ratios": [2.0, 1.0]},
+            figsize=(11, 9.5),
+            gridspec_kw={"height_ratios": [2.0, 1.0, 1.0, 1.0]},
         )
         self.fig.canvas.manager.set_window_title("Motor torque-speed operating point")
-        self.fig.subplots_adjust(left=0.10, right=0.78, bottom=0.10, top=0.86, hspace=0.34)
+        self.fig.subplots_adjust(left=0.09, right=0.76, bottom=0.07, top=0.90, hspace=0.55)
 
         rpm_curve = [0.0, 400.0, 800.0]
         t_cont = [18.0, 18.0, 0.0]
@@ -218,76 +241,52 @@ class UdpMotorCurveApp:
         self.ax_delta.grid(True, alpha=0.35)
         self.ax_delta.legend(loc="upper right")
 
-        checkbox_ax = self.fig.add_axes([0.80, 0.68, 0.18, 0.14])
-        self.checkbox = CheckButtons(
-            checkbox_ax,
-            ["Solo ultimos\nsegundos"],
-            [self.keep_last_seconds],
+        (self.vm_line,) = self.ax_vm.plot(
+            [],
+            [],
+            color="tab:purple",
+            linewidth=1.5,
+            label="Vm",
         )
-        for label in self.checkbox.labels:
-            label.set_fontsize(11)
-        for box in maybe_iter(getattr(self.checkbox, "rectangles", None)):
-            box.set_width(0.06)
-            box.set_height(0.06)
-        for frame in maybe_iter(getattr(self.checkbox, "_frames", None)):
-            try:
-                frame.set_sizes([80])
-            except AttributeError:
-                pass
-            try:
-                frame.set_markersize(9)
-            except AttributeError:
-                pass
-        for check in maybe_iter(getattr(self.checkbox, "_checks", None)):
-            try:
-                check.set_sizes([80])
-            except AttributeError:
-                pass
-            try:
-                check.set_markersize(9)
-            except AttributeError:
-                pass
-        self.checkbox.on_clicked(self.on_checkbox)
+        self.ax_vm.axhline(VM_LIMIT, color="tab:red", linestyle="--", linewidth=1.2, label="+/-48 V")
+        self.ax_vm.axhline(-VM_LIMIT, color="tab:red", linestyle="--", linewidth=1.2)
+        self.ax_vm.set_title("Tension aplicada al motor")
+        self.ax_vm.set_xlabel("Tiempo [s]")
+        self.ax_vm.set_ylabel("Vm [V]")
+        self.ax_vm.set_xlim(0, 1)
+        self.ax_vm.set_ylim(-55, 55)
+        self.ax_vm.grid(True, alpha=0.35)
+        self.ax_vm.legend(loc="upper right")
 
-        self.window_label = self.fig.text(
-            0.80,
-            0.61,
-            "Mostrar ultimos X segundos",
+        (self.im_line,) = self.ax_im.plot(
+            [],
+            [],
+            color="tab:green",
+            linewidth=1.5,
+            label="im",
+        )
+        self.ax_im.axhline(IM_PEAK_LIMIT, color="tab:red", linestyle="--", linewidth=1.2, label="+/-70 A pico")
+        self.ax_im.axhline(-IM_PEAK_LIMIT, color="tab:red", linestyle="--", linewidth=1.2)
+        self.ax_im.axhline(IM_CONT_LIMIT, color="tab:blue", linestyle=":", linewidth=1.2, label="+/-30 A continuo")
+        self.ax_im.axhline(-IM_CONT_LIMIT, color="tab:blue", linestyle=":", linewidth=1.2)
+        self.ax_im.set_title("Corriente del motor")
+        self.ax_im.set_xlabel("Tiempo [s]")
+        self.ax_im.set_ylabel("im [A]")
+        self.ax_im.set_xlim(0, 1)
+        self.ax_im.set_ylim(-80, 80)
+        self.ax_im.grid(True, alpha=0.35)
+        self.ax_im.legend(loc="upper right")
+
+        self.fig.text(
+            0.79,
+            0.82,
+            "Trazas: ultimos 2 s",
             va="bottom",
             ha="left",
             fontsize=10,
         )
-        self.textbox_ax = self.fig.add_axes([0.80, 0.55, 0.18, 0.05])
-        self.textbox = TextBox(self.textbox_ax, "", initial=str(default_window_s))
-        self.textbox.on_submit(self.on_window_submit)
-        self.set_window_control_visible(self.keep_last_seconds)
 
         self.fig.canvas.mpl_connect("close_event", self.on_close)
-
-    def on_checkbox(self, _label: str) -> None:
-        self.keep_last_seconds = not self.keep_last_seconds
-        self.set_window_control_visible(self.keep_last_seconds)
-        self.apply_time_window()
-
-    def set_window_control_visible(self, visible: bool) -> None:
-        self.window_label.set_visible(visible)
-        self.textbox_ax.set_visible(visible)
-        self.textbox.ax.set_visible(visible)
-        self.fig.canvas.draw_idle()
-
-    def on_window_submit(self, text: str) -> None:
-        try:
-            value = float(text)
-        except ValueError:
-            self.textbox.set_val(f"{self.window_s:g}")
-            return
-
-        if value <= 0:
-            self.textbox.set_val(f"{self.window_s:g}")
-            return
-
-        self.window_s = value
-        self.apply_time_window()
 
     def on_close(self, _event) -> None:
         self.running = False
@@ -313,6 +312,8 @@ class UdpMotorCurveApp:
             delta = parsed[2] if len(parsed) >= 5 else None
             delta_ref = parsed[3] if len(parsed) >= 5 else None
             sim_time = parsed[4] if len(parsed) >= 5 else None
+            vm = parsed[5] if len(parsed) >= 7 else None
+            im = parsed[6] if len(parsed) >= 7 else None
             now = time.monotonic()
 
             if self.stream_stopped:
@@ -327,6 +328,8 @@ class UdpMotorCurveApp:
                     delta=delta,
                     delta_ref=delta_ref,
                     sim_time=sim_time,
+                    vm=vm,
+                    im=im,
                 )
             )
             self.last_packet_time = now
@@ -358,6 +361,8 @@ class UdpMotorCurveApp:
                 self.point,
                 self.delta_line,
                 self.delta_ref_line,
+                self.vm_line,
+                self.im_line,
                 self.status_text,
             )
 
@@ -372,12 +377,16 @@ class UdpMotorCurveApp:
             self.point.set_offsets([[float("nan"), float("nan")]])
             self.delta_line.set_data([], [])
             self.delta_ref_line.set_data([], [])
+            self.vm_line.set_data([], [])
+            self.im_line.set_data([], [])
             self.status_text.set_text("Esperando UDP...")
             return (
                 self.trace_line,
                 self.point,
                 self.delta_line,
                 self.delta_ref_line,
+                self.vm_line,
+                self.im_line,
                 self.status_text,
             )
 
@@ -387,6 +396,7 @@ class UdpMotorCurveApp:
         self.point.set_offsets([[rpm[-1], torque[-1]]])
         self.update_axis_limits(rpm, torque)
         self.update_delta_plot()
+        self.update_vm_im_plots()
 
         latest_rpm = rpm[-1]
         latest_torque = torque[-1]
@@ -400,7 +410,6 @@ class UdpMotorCurveApp:
         else:
             region = "FUERA DE LIMITE"
 
-        mode = f"ultimos {self.window_s:g} s" if self.keep_last_seconds else "traza completa"
         if self.stream_stopped:
             status = "simulacion detenida | traza retenida"
         else:
@@ -408,7 +417,7 @@ class UdpMotorCurveApp:
 
         self.status_text.set_text(
             f"rpm={latest_rpm:.1f}, Tm={latest_torque:.2f} N.m\n"
-            f"{status} | {mode}"
+            f"{status} | ultimos {self.window_s:g} s"
         )
 
         return (
@@ -416,6 +425,8 @@ class UdpMotorCurveApp:
             self.point,
             self.delta_line,
             self.delta_ref_line,
+            self.vm_line,
+            self.im_line,
             self.status_text,
         )
 
@@ -444,6 +455,39 @@ class UdpMotorCurveApp:
         self.delta_ref_line.set_data(t, delta_ref)
         self.update_delta_axis_limits(t, delta, delta_ref)
 
+    def update_vm_im_plots(self) -> None:
+        electrical_samples = [
+            sample
+            for sample in self.samples
+            if sample.vm is not None and sample.im is not None
+        ]
+
+        if not electrical_samples:
+            self.vm_line.set_data([], [])
+            self.im_line.set_data([], [])
+            return
+
+        if all(sample.sim_time is not None for sample in electrical_samples):
+            t = [sample.sim_time for sample in electrical_samples]
+        else:
+            t0 = electrical_samples[0].t_rx
+            t = [sample.t_rx - t0 for sample in electrical_samples]
+
+        vm = [sample.vm for sample in electrical_samples]
+        im = [sample.im for sample in electrical_samples]
+
+        self.vm_line.set_data(t, vm)
+        self.im_line.set_data(t, im)
+        self.update_time_axis_limits(self.ax_vm, t, vm, -VM_LIMIT, VM_LIMIT, margin_min=5.0)
+        self.update_time_axis_limits(
+            self.ax_im,
+            t,
+            im,
+            -IM_PEAK_LIMIT,
+            IM_PEAK_LIMIT,
+            margin_min=5.0,
+        )
+
     def update_axis_limits(self, rpm: list[float], torque: list[float]) -> None:
         if not rpm or not torque:
             return
@@ -466,6 +510,45 @@ class UdpMotorCurveApp:
         ):
             self.ax_motor.set_xlim(*desired_xlim)
             self.ax_motor.set_ylim(*desired_ylim)
+
+    def update_time_axis_limits(
+        self,
+        ax,
+        t: list[float],
+        values: list[float | None],
+        base_min: float,
+        base_max: float,
+        margin_min: float,
+    ) -> None:
+        y_values = [value for value in values if value is not None]
+        if not t or not y_values:
+            return
+
+        t_min = min(t)
+        t_max = max(t)
+        if t_max <= t_min:
+            t_max = t_min + 1.0
+
+        y_min = min(min(y_values), base_min)
+        y_max = max(max(y_values), base_max)
+        y_span = max(y_max - y_min, 1.0)
+        t_margin = max(0.05, 0.03 * (t_max - t_min))
+        y_margin = max(margin_min, 0.08 * y_span)
+
+        desired_xlim = (t_min, t_max + t_margin)
+        desired_ylim = (y_min - y_margin, y_max + y_margin)
+
+        current_xlim = ax.get_xlim()
+        current_ylim = ax.get_ylim()
+
+        if (
+            abs(current_xlim[0] - desired_xlim[0]) > 0.01
+            or abs(current_xlim[1] - desired_xlim[1]) > 0.01
+            or abs(current_ylim[0] - desired_ylim[0]) > 0.25
+            or abs(current_ylim[1] - desired_ylim[1]) > 0.25
+        ):
+            ax.set_xlim(*desired_xlim)
+            ax.set_ylim(*desired_ylim)
 
     def update_delta_axis_limits(
         self,
@@ -510,7 +593,7 @@ class UdpMotorCurveApp:
         self.animation = FuncAnimation(
             self.fig,
             self.update,
-            interval=30,
+            interval=self.update_interval_ms,
             blit=False,
             cache_frame_data=False,
         )
@@ -538,12 +621,6 @@ def main() -> None:
         ),
     )
     parser.add_argument(
-        "--window",
-        type=float,
-        default=5.0,
-        help="Default seconds retained when the checkbox is enabled.",
-    )
-    parser.add_argument(
         "--max-points",
         type=int,
         default=20000,
@@ -555,7 +632,6 @@ def main() -> None:
         host=args.host,
         port=args.port,
         stale_timeout_s=args.stale_timeout,
-        default_window_s=args.window,
         max_points=args.max_points,
     )
     print(f"Listening for UDP packets on {args.host}:{args.port}")
