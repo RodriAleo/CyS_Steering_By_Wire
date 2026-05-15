@@ -54,7 +54,7 @@
 % Resumen
 % ======================================================================
 \begin{abstract}
-    En este trabajo se desarrolla el modelado, control y validación por simulación de un sistema de dirección por cable aplicado al actuador del lado de las ruedas. La planta se representa en espacio de estados a partir de un modelo electromecánico que incluye la dinámica eléctrica del motor, la transmisión hacia la cremallera, la dinámica de giro de las ruedas y perturbaciones mecánicas asociadas a fricción y torque autoalineante. Se verifica la estabilidad a lazo abierto, la controlabilidad desde la tensión aplicada al motor y la observabilidad a partir de la medición de posición de cremallera. Para el seguimiento del ángulo de rueda se diseña un controlador óptimo en espacio de estados, acompañado por un observador de Kalman para estimar los estados no medidos a partir de una señal sensada ruidosa y muestreada. Además, se valida la elección de un actuador electromecánico realista mediante un motor equivalente de 48 V y una transmisión por husillo de bolas. Los resultados de simulación muestran que una referencia escalón exige corrientes pico excesivas, mientras que una referencia trapezoidal reduce la demanda transitoria y mantiene corriente, torque, velocidad y tensión dentro de los límites nominales del motor seleccionado. De este modo, el modelo permite evaluar de forma integrada la respuesta dinámica, las exigencias del actuador y el efecto de perturbaciones representativas en un sistema Steering-by-Wire.
+    En este trabajo se desarrolla el modelado, control y validación por simulación de un sistema de dirección por cable aplicado al actuador del lado de las ruedas. La planta se formula en espacio de estados a partir de un modelo electromecánico que incluye la dinámica eléctrica del motor, la transmisión hacia la cremallera, la dinámica de la cremallera, el giro de las ruedas y perturbaciones asociadas a fricción y torque autoalineante. A partir del modelo lineal se verifican estabilidad, controlabilidad y observabilidad, y se diseña un controlador LQR para el seguimiento del ángulo de rueda. Como el controlador requiere realimentación completa de estados, se incorpora un observador de Kalman basado en la medición de posición lineal de cremallera, modelada con dinámica de sensor, muestreo, ruido y cuantización. También se analiza la selección de un actuador realista, adoptando un motor adecuado y validando sus límites de tensión, corriente, torque y velocidad. Finalmente, el modelo se evalúa ante perturbaciones representativas y se integra con un entorno de Unity para verificar cualitativamente la respuesta vehicular usando entradas reales de volante. En conjunto, el trabajo permite validar la coherencia del modelo propuesto y evaluar las condiciones de operación del actuador en una arquitectura \textit{Steering-by-Wire}.
 \end{abstract}
 
 % Secciones
@@ -82,7 +82,6 @@ Este enfoque constituye una innovación relevante en el ámbito automotriz, y pr
     \item Mejora en la seguridad, al permitir intervenciones del sistema ante condiciones adversas, como pérdida de adherencia.
     \item Posibilidad de modificar la relación entre el ángulo de giro del volante y el ángulo de las ruedas en función de la velocidad y otras variables, optimizando así la dinámica del vehiculo.
     \item Mayor flexibilidad en el diseño del habitáculo, al no requerir una conexión física entre el volante y el tren delantero.
-    \item Disminución del peso general del automóvil a remover elementos mecánicos.
 \end{itemize}
 
 \begin{figure}[H]
@@ -91,13 +90,16 @@ Este enfoque constituye una innovación relevante en el ámbito automotriz, y pr
     \caption{Modelo simplificado de SbW}
     \label{fig:dir_SbW}
 \end{figure}
+
+Cabe destacar que en estos sistemas es de suma importancia la redundancia de los componentes críticos como son el actuador de dirección, sensores, cables que transportan señales y potencia eléctrica; todo con el fin de poder garantizar la seguridad de los tripulantes del vehiculo ante fallas en el sistema.
+
 % ======================================================================
 \section{Desarrollo}
 \subsection{Modelado de la planta}
 El sistema de direccionamiento de las ruedas consiste en un motor eléctrico que acciona la cremallera mediante una transmisión equivalente basada en husillo de bolas. En este tipo de actuador, la rotación del motor se convierte en desplazamiento lineal de la cremallera, la cual acciona las rótulas que permiten la rotación de las ruedas. En la figura \ref{fig:esquema_planta} puede verse una representación simplificada del sistema:
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\linewidth]{figs/Esquema_planta.png}
+    \includegraphics[width=0.4\linewidth]{figs/Esquema_planta.png}
     \caption{Esquema simplificado del sistema de dirección del tren delantero.}
     \label{fig:esquema_planta}
 \end{figure}
@@ -356,6 +358,8 @@ A continuación se enumeran las principales simplificaciones y supuestos realiza
     \item El sensor se modela fuera de la planta continua como una medición de posición de cremallera $y_c(t)$, con ruido, dinámica de primer orden y retención de orden cero en Simulink. La matriz $C_s$ solo representa qué variable de estado se mide.
 
     \item Se considera un único actuador de dirección, sin modelar la relación entre ambas ruedas ni la geometría completa de la dirección del vehículo.
+
+    \item No se modelan elementos redundantes.
 \end{itemize}
 
 \subsubsection{Verificación con SimScape}
@@ -513,6 +517,13 @@ Para seguimiento de referencia con el LQR puro se utiliza una ganancia de precom
 k_{r} = -\bigl(C_{p} \cdot (A - B_{c} \cdot K_{\mathrm{lqr}})^{-1} \cdot B_{c}\bigr)^{-1}.
 \end{equation}
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{figs/bloque_LQR.png}
+    \caption{Bloque de controlador LQR en Simulink}
+    \label{fig:bloque_LQR}
+\end{figure}
+
 \subsection{Sensor}
 
 El sensor utilizado en el modelo mide la posición lineal de la cremallera $y_c(t)$. Se descartó la alternativa de medir $\theta_m(t)$ con un encoder sobre el eje del motor debido a que este necesariamente realiza más de una revolución a lo largo de toda la carrera de la cremallera. En ese caso, un sensor angular absoluto de una sola vuelta no alcanza para reconstruir la posición absoluta de la cremallera sin agregar conteo de vueltas. Un encoder incremental sobre el motor también podría resolverlo, pero requiere conservar el conteo acumulado y gestionar fallas o reinicios. Por esta razón, para el observador resulta más simple medir directamente $y_c(t)$.
@@ -589,6 +600,13 @@ f_c=\frac{1}{2\pi\tau_{sensor}}=15.9\ \mathrm{Hz}.
 
 Por otro lado, $T_{s,sensor}=10\ \mathrm{ms}$ representa la actualización de la medición entregada al controlador. Este período no pretende ser el límite físico del integrado; en el modelo representa la medición digital retenida disponible para el lazo de control.
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{figs/bloque_Sensor.png}
+    \caption{Bloque sensor de $y_c$}
+    \label{fig:bloque_Sensor}
+\end{figure}
+
 \subsection{Diseño del observador}
 
 El controlador LQR diseñado previamente requiere realimentación completa de estados. Sin embargo, en una implementación física no resulta práctico medir directamente todas las variables del vector $x(t)$, por este motivo se incorpora un observador de estados, que permite reconstruir el vector completo a partir del modelo de la planta, la entrada aplicada al motor y la medición de $y_c(t)$ disponible del sensor.
@@ -642,6 +660,70 @@ Finalmente, el controlador LQR se implementa utilizando los estados estimados, p
 \begin{equation}
 u(t)=-K_{\mathrm{lqr}}\hat{x}(t)+k_r r(t).
 \end{equation}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{figs/bloque_Observador.png}
+    \caption{Bloque de Observador en Simulink}
+    \label{fig:bloque_Observador}
+\end{figure}
+
+Cabe destacar que $\delta_{obs}$ se utiliza únicamente para comparar la estimacion con respecto al valor real.
+
+\subsection{Limitaciones en el actuador}
+
+El actuador de potencia se modela como una etapa ideal de modulación de tensión con ganancia unitaria. De este modo, la señal de control calculada por el controlador se interpreta directamente como la tensión de referencia aplicada al motor:
+
+\begin{equation}
+u(t)=V_m^{*}(t).
+\end{equation}
+
+Esta simplificación implica que no se modelan de forma explícita el inversor, el PWM, la dinámica interna del driver ni los retardos asociados a la electrónica de potencia.
+
+La elección de un actuador de $48\ \mathrm{V}$ se considera compatible con arquitecturas automotrices modernas, donde los sistemas de baja tensión extendida de $48\ \mathrm{V}$ se utilizan para alimentar cargas de mayor potencia que las disponibles en una red tradicional de $12\ \mathrm{V}$, manteniendo al mismo tiempo un nivel de tensión inferior al de los sistemas de alto voltaje. Esta tendencia se observa, por ejemplo, en sistemas mild-hybrid y redes auxiliares de potencia de \hyperlink{ref:bosch-48v}{Bosch}. En este trabajo se adopta este nivel de tensión para disponer de mayor potencia eléctrica en el actuador de ruedas sin introducir una arquitectura de alto voltaje.
+
+Sin embargo, el actuador real no puede aplicar una tensión arbitraria. Por este motivo, la tensión efectiva queda limitada por la saturación física del bus de alimentación, adoptada como $\pm48\ \mathrm{V}$:
+
+\begin{equation}
+V_m(t)=
+\mathrm{sat}\left(V_m^{*}(t)\right)=
+\begin{cases}
+48, & V_m^{*}(t)>48,\\
+V_m^{*}(t), & -48\leq V_m^{*}(t)\leq 48,\\
+-48, & V_m^{*}(t)<-48.
+\end{cases}
+\end{equation}
+
+De esta manera, el controlador puede demandar una tensión mayor en situaciones transitorias exigentes, pero el motor solo recibe el valor físicamente admisible. Esta saturación no forma parte del modelo lineal utilizado para diseñar el LQR, sino que se incorpora en Simulink para evaluar el comportamiento del sistema bajo limitaciones realistas de actuación.
+
+Los límites utilizados para validar la operación del motor se adoptan a partir del \hyperlink{ref:mosrac-u13060}{motor Mosrac U13060 de $48\ \mathrm{V}$}, utilizado como referencia del actuador equivalente. Estos valores se resumen en la tabla \ref{tab:limites_motor}.
+
+\begin{table}[H]
+\small
+\centering
+\caption{Límites de operación utilizados para validar el motor}
+\label{tab:limites_motor}
+\begin{tabular}{l c}
+\toprule
+\textbf{Magnitud} & \textbf{Límite adoptado} \\
+\midrule
+Tensión máxima $|V_m|$ & $48\ \mathrm{V}$ \\
+Corriente continua $I_{\mathrm{cont}}$ & $30\ \mathrm{A}$ \\
+Corriente pico $I_{\mathrm{peak}}$ & $70\ \mathrm{A}$ \\
+Torque continuo $T_{\mathrm{cont}}$ & $18\ \mathrm{N\,m}$ \\
+Torque pico $T_{\mathrm{peak}}$ & $40\ \mathrm{N\,m}$ \\
+Velocidad nominal $|\omega_{m,\mathrm{nom}}|$ & $400\ \mathrm{rpm}$ \\
+Velocidad máxima $|\omega_m|$ & $800\ \mathrm{rpm}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{figs/bloque_Actuador.png}
+    \caption{Bloque de actuador con modulación ideal y saturación de tensión}
+    \label{fig:bloque_Actuador}
+\end{figure}
 
 \subsection{Perturbaciones}
 
@@ -699,106 +781,131 @@ En el modelo se adoptaron $t_0=0.08\ \mathrm{m}$, $k_{\alpha}=8$ y $V_t=40\ \mat
 
 \subsection{Resultados}
 
-En la presente sección se somete al modelo matemático a una situación de gran exigencia como es lograr que las ruedas roten hasta su máximo rango de $35^\circ$ a partir de una referencia escalón. En la figura \ref{fig:respuesta_escalon} se muestra la respuesta obtenida para $\delta(t)$, y en la figura \ref{fig:control_escalon} se muestra la señal de control $V_m(t)$ necesaria para lograr dicho seguimiento.
+\subsubsection{Referencia escalón}
+
+En la presente sección se somete al modelo matemático a una situación de gran exigencia como es lograr que las ruedas roten hasta su máximo rango de $35^\circ$ a partir de una referencia escalón. En la figura \ref{fig:respuesta_escalon} se muestra la respuesta obtenida para el ángulo de las ruedas $\delta(t)$, y el desplazamiento de la cremallera $y_c(t)$.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\linewidth]{figs/RtaDelta_entradaEscalon.png}
-    \caption{Respuesta del ángulo de las ruedas $\delta(t)$ ante una referencia escalón de $35^\circ$}
-    \label{fig:fuerza_resultante_lateral}
+    \includegraphics[width=1\linewidth]{figs/RtaDelta_entradaEscalon.png}
+    \caption{Respuesta $\delta(t)$ y $y_c(t)$ ante una referencia escalón de $35^\circ$}
+    \label{fig:respuesta_escalon}
 \end{figure}
 
-Como puede observarse, el sistema logra alcanzar la referencia de $35^\circ$ con un tiempo de establecimiento de $162\mathrm{ms}$ y sin sobrepico, y llega al valor de referencia a los $320\mathrm{ms}$, lo cual representa una velocidad promedio de $110 \, \mathrm{^\circ/s}$
+Como puede observarse, el sistema logra alcanzar la referencia de $35^\circ$ con un tiempo de establecimiento de $162\mathrm{ms}$ y sin sobrepico, y llega al valor de referencia a los $300\mathrm{ms}$, lo cual representa una velocidad promedio de $110 \, \mathrm{^\circ/s}$ para la rotación de las ruedas, y de una velocidad de desplazamiento de la cremallera de $233\,\mathrm{mm/s}$. Este valor está por encima de la velocidad lineal máxima publicada para el \hyperlink{ref:schaeffler-rwa}{Road Wheel Actuator de Schaeffler}, que declara una velocidad de hasta $140\,\mathrm{mm/s}$ y una carrera de hasta $112\,\mathrm{mm}$. Por lo tanto, la referencia escalón debe interpretarse como una prueba exigente del sistema y no como una maniobra nominal del actuador.
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{figs/motor_entradaEscalon.png}
+    \caption{Parámetros del motor ante entrada escalón de $35^\circ$}
+    \label{fig:motor_respuesta_escalon}
+\end{figure}
 
-\subsection{Cosas a reordenar bien al final de todo}
+En la figura \ref{fig:motor_respuesta_escalon} se muestran las variables eléctricas y mecánicas del motor.
 
-\subsubsection{Controlador LQR con acción integral}
+\begin{table}[H]
+\small
+\centering
+\caption{Validación del motor ante referencia escalón de $35^\circ$}
+\label{tab:validacion_motor_escalon}
+\begin{tabular}{l c c}
+\toprule
+\textbf{Magnitud} & \textbf{Valor obtenido} & \textbf{Límite admisible} \\
+\midrule
+$\max(|V_m|)$ & $48\ \mathrm{V}$ & $48\ \mathrm{V}$ \\
+$\max(|i_m|)$ & \textcolor{red}{$98.8\ \mathrm{A}$} & $70\ \mathrm{A}$ \\
+$i_{m,\mathrm{RMS}}$ & $12.6\ \mathrm{A}$ & $30\ \mathrm{A}$ \\
+$\max(|T_m|)$ & \textcolor{red}{$59.3\ \mathrm{N\,m}$} & $40\ \mathrm{N\,m}$ \\
+$T_{m,\mathrm{RMS}}$ & $7.5\ \mathrm{N\,m}$ & $18\ \mathrm{N\,m}$ \\
+$\max(|\omega_m|)$ & \textcolor{red}{$1061\ \mathrm{rpm}$} & $800\ \mathrm{rpm}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-Para eliminar el error en estado estacionario frente a referencias constantes se introduce la variable de estado
-$z(t)=\int_{0}^{t}\bigl(y_{p}(\tau)-r(\tau)\bigr)\,d\tau$,
-que acumula la diferencia entre la salida de desempeño $y_{p}=C_{p}x$ y la referencia $r$. De este modo se amplía el vector de estados a
-\begin{equation}
-x_{\mathrm{aug}}(t)=
-\begin{bmatrix}
-x(t)\\
-z(t)
-\end{bmatrix},
-\end{equation}
-y las ecuaciones de estado pasan a
-\begin{equation}
-\dot x_{\mathrm{aug}}(t)
-=
-\underbrace{
-\begin{bmatrix}
-A & 0\\
-C_{p} & 0
-\end{bmatrix}
-}_{A_{\mathrm{aug}}}
-\!x_{\mathrm{aug}}(t)
-+
-\underbrace{
-\begin{bmatrix}
-B_{c}\\
-0
-\end{bmatrix}
-}_{B_{\mathrm{aug}}}
-\,u(t)
-+
-\underbrace{
-\begin{bmatrix}
-B_{d}\\
-0
-\end{bmatrix}
-}_{B_{d,\mathrm{aug}}}
-\,d(t)
-+
-\underbrace{
-\begin{bmatrix}
-0\\
--1
-\end{bmatrix}
-}_{B_{r}}
-\,r(t).
-\end{equation}
+Los resultados de la tabla \ref{tab:validacion_motor_escalon} muestran que la entrada escalón exige al actuador por encima de sus límites de operación. Aunque la tensión no supera la saturación de $48\ \mathrm{V}$ y los valores RMS de corriente y torque se mantienen dentro de los límites continuos, los valores pico de corriente, torque y velocidad exceden los límites admisibles. Por lo tanto, esta prueba permite evaluar el desempeño dinámico del lazo, pero no representa una consigna realista para validar la operación nominal del motor.
 
-El controlador se diseña resolviendo la ecuación de Riccati asociada al costo
-\begin{equation}
-J=\int_{0}^{\infty}\bigl(x_{\mathrm{aug}}(t)^{T}Q_{x}\,x_{\mathrm{aug}}(t)
-+
-u(t)^{T}Q_{u}\,u(t)\bigr)\,dt.
-\end{equation}
-Se eligen las matrices de peso como
-\begin{equation}
-Q_{x}=
-\begin{bmatrix}
-C_{p}^{T}\,Q_{y}\,C_{p} & 0\\
-0 & \displaystyle \frac{\alpha_{z}}{z_{\max}^{2}}
-\end{bmatrix},
-\quad
-Q_{y}=\frac{\alpha_{\delta}}{\delta_{\max}^{2}},
-\quad
-Q_{u}=\frac{\rho}{V_{m\text{-max}}^{2}},
-\end{equation}
-donde $\alpha_{\delta}$ y $\alpha_{z}$ ponderan la penalización sobre $\delta$ y sobre la integral del error.
-En el modelo de simulación se utilizaron $\alpha_{\delta}=8$, $\alpha_z=5$, $z_{max}=0.04$ y $\rho=0.08$.
+\subsubsection{Referencia trapezoidal}
 
-La ganancia aumentada se obtiene en MATLAB con
-\begin{equation}
-K_{\mathrm{aug}}=\mathrm{lqr}\bigl(A_{\mathrm{aug}},B_{\mathrm{aug}},Q_{x},Q_{u}\bigr).
-\end{equation}
-De $K_{\mathrm{aug}}=[\,K\;\;K_{i}\,]$ se extraen directamente
-\begin{equation}
-K\in\mathbb{R}^{1\times 7},
-\quad
-K_{i}\in\mathbb{R},
-\end{equation}
-que se emplean en la ley de control
-\begin{equation}
-u(t)=-K\cdot x(t)-K_{i}\cdot z(t)
-\end{equation}
+Para comparar con una consigna más realista, se propone repetir la simulación utilizando una referencia trapezoidal de $35^\circ$. Esta referencia limita la pendiente de $\delta_{ref}(t)$ y evita exigir velocidad y aceleración instantáneas al actuador.
 
-Notar que la referencia ha sido quitada de la ley de control ya que se encuentra implícita dentro de la variable de estado $z(t)$.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{figs/rtaDelta_entradaTrapezoidal.png}
+    \caption{Respuesta $\delta(t)$ y $y_c(t)$ ante una referencia trapezoidal de $35^\circ$}
+    \label{fig:respuesta_trapezoidal}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{figs/motor_entradaTrapezoidal.png}
+    \caption{Variables eléctricas y mecánicas del motor ante referencia trapezoidal de $35^\circ$}
+    \label{fig:motor_respuesta_trapezoidal}
+\end{figure}
+
+\begin{table}[H]
+\small
+\centering
+\caption{Validación del motor ante referencia trapezoidal de $35^\circ$}
+\label{tab:validacion_motor_trapezoidal}
+\begin{tabular}{l c c}
+\toprule
+\textbf{Magnitud} & \textbf{Valor obtenido} & \textbf{Límite admisible} \\
+\midrule
+$\max(|V_m|)$ & $48\ \mathrm{V}$ & $48\ \mathrm{V}$ \\
+$\max(|i_m|)$ & $34.0\ \mathrm{A}$ & $70\ \mathrm{A}$ \\
+$i_{m,\mathrm{RMS}}$ & $11.1\ \mathrm{A}$ & $30\ \mathrm{A}$ \\
+$\max(|T_m|)$ & $20.4\ \mathrm{N\,m}$ & $40\ \mathrm{N\,m}$ \\
+$T_{m,\mathrm{RMS}}$ & $6.6\ \mathrm{N\,m}$ & $18\ \mathrm{N\,m}$ \\
+$\max(|\omega_m|)$ & $757\ \mathrm{rpm}$ & $800\ \mathrm{rpm}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Como se observa en la tabla \ref{tab:validacion_motor_trapezoidal}, la referencia trapezoidal reduce la exigencia transitoria sobre el actuador y mantiene corriente, torque y velocidad dentro de los límites adoptados para el motor.
+
+Como puede observarse en la gráfica de $V_m$, el controlador LQR fue ajustado para aprovechar al máximo la capacidad disponible del actuador, incluso cuando esto implica alcanzar la saturación de tensión. Este criterio de diseño se adoptó porque el sistema está orientado a vehículos tripulados, donde se prioriza la seguridad y resulta necesario que el conductor pueda realizar maniobras rápidas y precisas ante situaciones de emergencia.
+
+\subsubsection{Efecto de perturbaciones}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{figs/perturbaciones_entradaTrapezoidal.png}
+    \caption{Perturbaciones $F_f$, $T_f$ y $T_a$ durante la respuesta a referencia trapezoidal de $35^\circ$}
+    \label{fig:perturbaciones_trapezoidal}
+\end{figure}
+
+En los gráficos de $F_f$ y $T_f$ se observa que las fricciones de cremallera y pivote de rueda alcanzan sus valores máximos durante el movimiento continuo en una dirección. Al llegar a la referencia, el controlador genera pequeñas correcciones de tensión para compensar estas fricciones y mantener el seguimiento de la consigna. Esto se debe a que las fricciones secas, aunque fueron suavizadas mediante funciones arcotangente, siguen actuando como perturbaciones no lineales cerca del equilibrio.
+
+Por otro lado, el torque autoalineante $T_a$ alcanza un valor máximo de $72\ \mathrm{N\,m}$ durante la maniobra. Para su cálculo se utilizó una velocidad fija de $40\ \mathrm{km/h}$, por lo que representa una perturbación significativa aplicada durante el seguimiento de la referencia.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{figs/Esfuerzo_entradaTrapezoidal.png}
+    \caption{Fuerza $F_{cr}$ y torque $T_{fw}$ efectivos aplicados sobre cremallera y rueda, respectivamente.}
+    \label{fig:esfuerzo_trapezoidal}
+\end{figure}
+
+Como puede verse en la figura \ref{fig:esfuerzo_trapezoidal}, la fuerza $F_{cr}$ y el torque $T_{fw}$ aplicados sobre la cremallera y la rueda son significativamente superiores a las perturbaciones modeladas. Además, el valor máximo de $F_{cr}$ se mantiene por debajo del límite de fuerza activa declarado para el \hyperlink{ref:schaeffler-rwa}{Road Wheel Actuator de Schaeffler}, que es de hasta $20\ \mathrm{kN}$. Por lo tanto, el actuador cuenta con margen suficiente para compensar estos efectos y el controlador logra mantener un seguimiento adecuado de la referencia.
+
+\subsubsection{Simulación en Unity}
+
+Para validar el comportamiento del modelo matemático con entradas más cercanas a una maniobra real, se decidió probar el sistema utilizando señales generadas desde un volante Logitech G923. En esta prueba, el modelo de control y actuación continúa ejecutándose en Simulink, mientras que las variables principales de la simulación se envían en tiempo real hacia Unity mediante comunicación UDP.
+
+En el entorno de Unity se utiliza como base el controlador físico \hyperlink{ref:prometeo-car-controller}{\textit{PROMETEO: Car Controller}}. En su implementación original, el controlador recibe una entrada asociada al giro del volante y la transforma internamente en una consigna de dirección para las ruedas, incorporando además un retardo para representar el atraso físico entre la acción sobre el volante y la respuesta de giro de los neumáticos. En este trabajo, dicha dinámica ya se encuentra representada en el modelo desarrollado en Simulink, por lo que no resulta necesario volver a incorporarla dentro del entorno de Unity. Por este motivo, se modificó el controlador PROMETEO para aplicar directamente $\delta(t)$ como ángulo de giro a las ruedas delanteras. De esta manera, el vehículo no es rotado artificialmente, sino que su movimiento resulta de la interacción física entre las ruedas y el suelo dentro del motor de física de Unity, de forma análoga a lo que ocurre en un vehículo real.
+
+Esta prueba permite verificar cualitativamente que la respuesta del controlador no solo alcanza correctamente la referencia en las gráficas de Simulink, sino que además produce una maniobra coherente y familiar para el usuario. En el siguiente enlace puede verse un video donde se muestra una prueba de la interacción entre ambos sistemas, además de gráficas mínimas para mostrar el seguimiento de la respuesta y parámetros del motor en tiempo real:
+
+\begin{center}
+\href{URL_DEL_VIDEO}{Video de validación en Unity}
+\end{center}
+
+\section{Conclusiones}
+
+En el trabajo desarrollado los resultados muestran que el sistema puede seguir referencias de dirección exigentes y que el actuador seleccionado opera dentro de límites razonables cuando las consignas se plantean de forma realista. Además, la simulación con perturbaciones permitió verificar que el actuador cuenta con margen suficiente para compensar fricción y torque autoalineante en las condiciones evaluadas.
+
+La validación adicional en Unity permitió comprobar de manera cualitativa que la salida del modelo no solo es consistente en las gráficas de Simulink, sino que también produce una respuesta vehicular coherente al aplicarse sobre un modelo físico interactivo. Esta prueba resulta útil como paso intermedio entre la simulación puramente matemática y una implementación experimental, ya que permite observar el efecto del ángulo de rueda calculado sobre la dinámica visible del vehículo.
+
+Como trabajo futuro, un paso natural sería implementar el controlador discretizado y probarlo mediante una plataforma de \textit{hardware-in-the-loop}, incorporando tiempos de muestreo, comunicación y procesamiento más representativos de una implementación real. También sería conveniente ajustar con mayor precisión los parámetros mecánicos de la transmisión, la cremallera y el enlace con las ruedas, con el objetivo de obtener fuerzas y torques más cercanos a los de un actuador real. Finalmente, se debería mejorar el modelo de perturbaciones para incluir situaciones no contempladas en este estudio, como el esfuerzo requerido para girar el neumático cuando el vehículo está detenido o cuando existe rotación de la rueda sobre su propio eje sin avance longitudinal significativo.
 
 \section*{Referencias}
 \addcontentsline{toc}{section}{Referencias}
@@ -806,13 +913,21 @@ Notar que la referencia ha sido quitada de la ley de control ya que se encuentra
 \subsection*{Parámetros de planta, actuador, perturbaciones y sensor}
 
 \begin{itemize}
-    \item \hypertarget{ref:mosrac-u13060}{}\textbf{Mosrac, \textit{U130 Series Frameless Direct Drive Torque Motors}}. Catálogo web utilizado como referencia para el motor equivalente Mosrac U13060 de $48\ \mathrm{V}$. Disponible en: \url{https://www.mosrac.com/products/frameless-direct-drive-torque-motors/u130-series.html}.
-
-    \item \hypertarget{ref:taher-2025}{}\textbf{Taher Sachit Taher et al., \textit{Improving the Performance of Steering by Wire Using a Model Predictive Controller Enhanced with Particle Swarm Optimisation}}. Archivo local: \texttt{Papers/Improving\_the\_Performance\_of\_Steering\_by\_Wire\_Usin.pdf}. Al-Khwarizmi Engineering Journal, vol. 21, no. 1, pp. 61--72, 2025. DOI: \url{https://doi.org/10.22153/kej.2025.01.002}.
-
+    \item \hypertarget{ref:recursos-catedra}{}\textbf{Recursos aportados por la cátedra}. Repositorio con material de apoyo, consignas, guías y recursos complementarios provistos durante el cursado de la asignatura para el desarrollo del trabajo. Disponible en: \url{https://github.com/carloshernangarrido/control}.
+    
     \item \hypertarget{ref:azizul-2024}{}\textbf{M. A. Azizul, F. Ahmad, J. Karjanto, M. H. Che Hasan y S. Sulaiman, \textit{Modelling, Simulation and Testing of Steer-by-Wire System with Variable Steering Ratio Control Strategy in 14-DOF Full Vehicle Model}}. Archivo local: \texttt{Papers/Azizul - 14 dof model.pdf}. International Journal of Automotive and Mechanical Engineering, vol. 21, no. 4, pp. 11784--11808, 2024. DOI: \url{https://doi.org/10.15282/ijame.21.4.2024.5.0908}.
+    
+    \item \hypertarget{ref:taher-2025}{}\textbf{Taher Sachit Taher et al., \textit{Improving the Performance of Steering by Wire Using a Model Predictive Controller Enhanced with Particle Swarm Optimisation}}. Archivo local: \texttt{Papers/Improving\_the\_Performance\_of\_Steering\_by\_Wire\_Usin.pdf}. Al-Khwarizmi Engineering Journal, vol. 21, no. 1, pp. 61--72, 2025. DOI: \url{https://doi.org/10.22153/kej.2025.01.002}.
+    
+    \item \hypertarget{ref:bosch-48v}{}\textbf{Bosch, \textit{48 V battery}}. Referencia sobre el uso de redes y baterías de $48\ \mathrm{V}$ en vehículos modernos y sistemas mild-hybrid. Disponible en: \url{https://www.bosch-mobility.com/en/solutions/batteries/48-v-battery/}.
+
+    \item \hypertarget{ref:mosrac-u13060}{}\textbf{Mosrac, \textit{U130 Series Frameless Direct Drive Torque Motors}}. Catálogo web utilizado como referencia para el motor equivalente Mosrac U13060 de $48\ \mathrm{V}$. Disponible en: \url{https://www.mosrac.com/products/frameless-direct-drive-torque-motors/u130-series.html}.  
 
     \item \hypertarget{ref:mlx90513}{}\textbf{Melexis, \textit{MLX90513 Inductive Position Sensor Interface IC}}. Sensor inductivo automotriz para medición absoluta rotativa o lineal, utilizado como referencia para la medición de posición de cremallera y para el error máximo de medición. Página del producto: \url{https://www.melexis.com/en/product/MLX90513}. Datasheet: \url{https://www.melexis.com/-/media/files/documents/datasheets/mlx90513-datasheet-melexis.pdf}.
+
+	    \item \hypertarget{ref:schaeffler-rwa}{}\textbf{Schaeffler, \textit{Road Wheel Actuator}}. Actuador de ruedas para sistemas \textit{steer-by-wire}, utilizado como referencia para comparar carrera, fuerza y velocidad lineal de cremallera. Disponible en: \url{https://www.schaeffler.us/us/products-and-solutions/powertrain-chassis/road-wheel-actuator/}.
+
+	    \item \hypertarget{ref:prometeo-car-controller}{}\textbf{Unity Asset Store, \textit{PROMETEO: Car Controller}}. Controlador físico de vehículo utilizado como entorno de validación visual e interactiva en Unity. Disponible en: \url{https://assetstore.unity.com/packages/tools/physics/prometeo-car-controller-209444}.
 \end{itemize}
 
 \subsection*{Modelo de torque autoalineante}
