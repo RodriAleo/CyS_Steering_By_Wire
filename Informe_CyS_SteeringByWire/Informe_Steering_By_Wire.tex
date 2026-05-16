@@ -54,7 +54,7 @@
 % Resumen
 % ======================================================================
 \begin{abstract}
-    En este trabajo se desarrolla el modelado, control y validación por simulación de un sistema de dirección por cable aplicado al actuador del lado de las ruedas. La planta se formula en espacio de estados a partir de un modelo electromecánico que incluye la dinámica eléctrica del motor, la transmisión hacia la cremallera, la dinámica de la cremallera, el giro de las ruedas y perturbaciones asociadas a fricción y torque autoalineante. A partir del modelo lineal se verifican estabilidad, controlabilidad y observabilidad, y se diseña un controlador LQR para el seguimiento del ángulo de rueda. Como el controlador requiere realimentación completa de estados, se incorpora un observador de Kalman basado en la medición de posición lineal de cremallera, modelada con dinámica de sensor, muestreo, ruido y cuantización. También se analiza la selección de un actuador realista, adoptando un motor adecuado y validando sus límites de tensión, corriente, torque y velocidad. Finalmente, el modelo se evalúa ante perturbaciones representativas y se integra con un entorno de Unity para verificar cualitativamente la respuesta vehicular usando entradas reales de volante. En conjunto, el trabajo permite validar la coherencia del modelo propuesto y evaluar las condiciones de operación del actuador en una arquitectura \textit{Steering-by-Wire}.
+    En este trabajo se desarrolla el modelado, control y validación por simulación de un sistema de dirección por cable aplicado al actuador del lado de las ruedas. La planta se formula en espacio de estados a partir de un modelo electromecánico que incluye la dinámica eléctrica del motor, la transmisión hacia la cremallera, la dinámica de la cremallera, el giro de las ruedas y perturbaciones asociadas a fricción y torque autoalineante. A partir del modelo lineal se verifican estabilidad, controlabilidad y observabilidad, y se diseña un controlador LQR para el seguimiento del ángulo de rueda. Como el controlador requiere realimentación completa de estados, se incorpora un observador de Kalman basado en la medición de posición lineal de cremallera, modelada con dinámica de sensor, muestreo, ruido y cuantización. También se analiza la selección de un actuador realista, adoptando un motor adecuado y validando sus límites de tensión, corriente, torque y velocidad. Finalmente, el modelo se evalúa ante perturbaciones representativas y se integra con un entorno de Unity para verificar cualitativamente la respuesta del vehículo usando entradas reales de volante. En conjunto, el trabajo permite validar la coherencia del modelo propuesto y evaluar las condiciones de operación del actuador en una arquitectura \textit{Steering-by-Wire}.
 \end{abstract}
 
 % Secciones
@@ -858,7 +858,20 @@ En el entorno de Unity se utiliza como base el controlador físico \hyperlink{re
 Esta prueba permite verificar cualitativamente que la respuesta del controlador no solo sigue de manera coherente la referencia en las gráficas de Simulink, sino que además produce una maniobra familiar para el usuario. En el siguiente enlace puede verse un video donde se muestra una prueba de la interacción entre ambos sistemas, además de gráficas mínimas para mostrar el seguimiento de la respuesta y parámetros del motor en tiempo real:
 
 \begin{center}
-\href{URL_DEL_VIDEO}{Video de validación en Unity}
+\href{https://www.youtube.com/watch?v=QAsnqMuFXuQ}{Video de validación en Unity}
+\end{center}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{figs/Unity.png}
+    \caption{Captura del video mostrando el vehículo respondiendo a la referencia de dirección generada por volante.}
+    \label{fig:unity}
+\end{figure}
+
+El código completo del proyecto, incluyendo el modelo de Simulink, el informe y los scripts auxiliares utilizados para la visualización en tiempo real, se encuentra disponible en el siguiente repositorio:
+
+\begin{center}
+\href{URL_DEL_REPOSITORIO}{Repositorio del proyecto}
 \end{center}
 
 \section{Conclusiones}
