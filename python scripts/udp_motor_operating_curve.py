@@ -269,15 +269,6 @@ class UdpMotorCurveApp:
         )
         self.point = self.ax_motor.scatter([], [], s=55, color="black", zorder=4)
 
-        self.status_text = self.fig_motor.text(
-            0.02,
-            0.985,
-            "Esperando UDP...",
-            va="top",
-            ha="left",
-            fontsize=10,
-        )
-
         self.ax_motor.set_xlabel("Velocidad motor |rpm|")
         self.ax_motor.set_ylabel("Torque motor |N.m|")
         self.ax_motor.set_title("Curva torque-velocidad")
@@ -360,15 +351,6 @@ class UdpMotorCurveApp:
         self.ax_ta.set_ylim(-10, TA_BASE_LIMIT)
         self.ax_ta.grid(True, alpha=0.35)
         self.ax_ta.legend(loc="upper right")
-
-        self.fig_motor.text(
-            0.76,
-            0.985,
-            "Trazas: ultimos 2 s",
-            va="top",
-            ha="left",
-            fontsize=10,
-        )
 
         for fig in self.figures:
             fig.canvas.mpl_connect("close_event", self.on_close)
@@ -583,7 +565,7 @@ class UdpMotorCurveApp:
                 self.vm_line,
                 self.im_line,
                 self.ta_line,
-                self.status_text,
+                self.trace_line,
             )
 
         received = self.drain_udp()
@@ -600,7 +582,6 @@ class UdpMotorCurveApp:
             self.vm_line.set_data([], [])
             self.im_line.set_data([], [])
             self.ta_line.set_data([], [])
-            self.status_text.set_text("Esperando UDP...")
             return (
                 self.trace_line,
                 self.point,
@@ -609,7 +590,7 @@ class UdpMotorCurveApp:
                 self.vm_line,
                 self.im_line,
                 self.ta_line,
-                self.status_text,
+                self.trace_line,
             )
 
         rpm = [sample.rpm for sample in self.samples]
@@ -620,28 +601,6 @@ class UdpMotorCurveApp:
         self.update_delta_plot()
         self.update_auxiliary_time_plots()
 
-        latest_rpm = rpm[-1]
-        latest_torque = torque[-1]
-        cont = continuous_limit(latest_rpm)
-        peak = peak_limit(latest_rpm)
-
-        if latest_torque <= cont:
-            region = "CONTINUO"
-        elif latest_torque <= peak:
-            region = "PICO"
-        else:
-            region = "FUERA DE LIMITE"
-
-        if self.stream_stopped:
-            status = "simulacion detenida | traza retenida"
-        else:
-            status = f"region: {region}"
-
-        self.status_text.set_text(
-            f"rpm={latest_rpm:.1f}, Tm={latest_torque:.2f} N.m\n"
-            f"{status} | ultimos {self.window_s:g} s"
-        )
-
         return (
             self.trace_line,
             self.point,
@@ -650,7 +609,7 @@ class UdpMotorCurveApp:
             self.vm_line,
             self.im_line,
             self.ta_line,
-            self.status_text,
+            self.trace_line,
         )
 
     def update_delta_plot(self) -> None:
