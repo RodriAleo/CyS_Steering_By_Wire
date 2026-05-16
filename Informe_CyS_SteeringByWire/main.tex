@@ -752,7 +752,7 @@ En el modelo se adoptaron $t_0=0.08\ \mathrm{m}$, $k_{\alpha}=8$, mientras que l
 
 \subsection{Resultados}
 
-A continuación se muestra una imágen con la disposición de los bloques que conforman a la simulacion en Simulink:
+A continuación se muestra una imagen con la disposición de los bloques que conforman la simulación en Simulink:
 
 \begin{figure}[H]
     \centering
@@ -761,52 +761,9 @@ A continuación se muestra una imágen con la disposición de los bloques que co
     \label{fig:Simulink_final}
 \end{figure}
 
-\subsubsection{Referencia escalón}
+\subsubsection{Referencia trapezoidal de \texorpdfstring{$35^\circ$}{35°} a \texorpdfstring{$40\ \mathrm{km/h}$}{40 km/h}}
 
-En la presente sección se somete al modelo matemático a una situación de gran exigencia como es lograr que las ruedas roten hasta su máximo rango de $35^\circ$ a partir de una referencia escalón. En la figura \ref{fig:respuesta_escalon} se muestra la respuesta obtenida para el ángulo de las ruedas $\delta(t)$, y el desplazamiento de la cremallera $y_c(t)$.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=1\linewidth]{figs/RtaDelta_entradaEscalon.png}
-    \caption{Respuesta $\delta(t)$ y $y_c(t)$ ante una referencia escalón de $35^\circ$}
-    \label{fig:respuesta_escalon}
-\end{figure}
-
-Como puede observarse, el sistema logra alcanzar la referencia de $35^\circ$ con un tiempo de establecimiento de $162\mathrm{ms}$ y sin sobrepico, y llega al valor de referencia a los $300\mathrm{ms}$, lo cual representa una velocidad promedio de $110 \, \mathrm{^\circ/s}$ para la rotación de las ruedas, y de una velocidad de desplazamiento de la cremallera de $233\,\mathrm{mm/s}$. Este valor está por encima de la velocidad lineal máxima publicada para el \hyperlink{ref:schaeffler-rwa}{Road Wheel Actuator de Schaeffler}, que declara una velocidad de hasta $140\,\mathrm{mm/s}$ y una carrera de hasta $112\,\mathrm{mm}$. Por lo tanto, la referencia escalón debe interpretarse como una prueba exigente del sistema y no como una maniobra nominal del actuador.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=1\linewidth]{figs/motor_entradaEscalon.png}
-    \caption{Parámetros del motor ante entrada escalón de $35^\circ$}
-    \label{fig:motor_respuesta_escalon}
-\end{figure}
-
-En la figura \ref{fig:motor_respuesta_escalon} se muestran las variables eléctricas y mecánicas del motor.
-
-\begin{table}[H]
-\small
-\centering
-\caption{Validación del motor ante referencia escalón de $35^\circ$}
-\label{tab:validacion_motor_escalon}
-\begin{tabular}{l c c}
-\toprule
-\textbf{Magnitud} & \textbf{Valor obtenido} & \textbf{Límite admisible} \\
-\midrule
-$\max(|V_m|)$ & $48\ \mathrm{V}$ & $48\ \mathrm{V}$ \\
-$\max(|i_m|)$ & \textcolor{red}{$98.8\ \mathrm{A}$} & $70\ \mathrm{A}$ \\
-$i_{m,\mathrm{RMS}}$ & $12.6\ \mathrm{A}$ & $30\ \mathrm{A}$ \\
-$\max(|T_m|)$ & \textcolor{red}{$59.3\ \mathrm{N\,m}$} & $40\ \mathrm{N\,m}$ \\
-$T_{m,\mathrm{RMS}}$ & $7.5\ \mathrm{N\,m}$ & $18\ \mathrm{N\,m}$ \\
-$\max(|\omega_m|)$ & \textcolor{red}{$1061\ \mathrm{rpm}$} & $800\ \mathrm{rpm}$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Los resultados de la tabla \ref{tab:validacion_motor_escalon} muestran que la entrada escalón exige al actuador por encima de sus límites de operación. Aunque la tensión no supera la saturación de $48\ \mathrm{V}$ y los valores RMS de corriente y torque se mantienen dentro de los límites continuos, los valores pico de corriente, torque y velocidad exceden los límites admisibles. Por lo tanto, esta prueba permite evaluar el desempeño dinámico del lazo, pero no representa una consigna realista para validar la operación nominal del motor.
-
-\subsubsection{Referencia trapezoidal}
-
-Para comparar con una consigna más realista, se propone repetir la simulación utilizando una referencia trapezoidal de $35^\circ$. Esta referencia limita la pendiente de $\delta_{ref}(t)$ y evita exigir velocidad y aceleración instantáneas al actuador.
+Para evaluar el sistema se utiliza una referencia trapezoidal de $35^\circ$, en lugar de una entrada escalón. Esta forma de consigna resulta más representativa de una entrada generada por un volante y evita exigir aceleraciones instantáneas al actuador, lo cual reduce los picos de corriente y torque del motor durante el inicio de la maniobra.
 
 \begin{figure}[H]
     \centering
@@ -827,6 +784,12 @@ Para comparar con una consigna más realista, se propone repetir la simulación 
     \label{fig:respuesta_trapezoidal}
 \end{figure}
 
+En la figura \ref{fig:respuesta_trapezoidal} se observa que el sistema sigue la forma general de la referencia, aunque queda un error estacionario cercano a $0.4^\circ$ respecto de los $35^\circ$ solicitados. Este error aparece porque el ensayo incluye perturbaciones sostenidas sobre la rueda, en particular el torque autoalineante del neumático. La señal $\delta_{\mathrm{obs}}$ estimada por el observador sigue la tendencia de $\delta$, pero queda levemente por encima del ángulo real. Esta diferencia es coherente con la arquitectura adoptada: el observador reconstruye el estado completo a partir de la medición de la posición de cremallera $y_c$, pero no mide directamente el ángulo de rueda. Por lo tanto, ante perturbaciones externas aplicadas sobre la rueda puede aparecer un sesgo entre la estimación de $\delta$ y el valor real.
+
+Durante esta maniobra, el desplazamiento de la cremallera asociado al giro de $35^\circ$ es de aproximadamente $70\ \mathrm{mm}$. Considerando que la respuesta se completa en el orden de $0.55\ \mathrm{s}$, se obtiene una velocidad media equivalente cercana a $127\ \mathrm{mm/s}$. Este valor se encuentra en el mismo orden de magnitud que la velocidad lineal declarada para el \hyperlink{ref:schaeffler-rwa}{Road Wheel Actuator de Schaeffler}, que es de hasta $140\ \mathrm{mm/s}$.
+
+\subsubsection{Perturbaciones y esfuerzo de actuación}
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=1\linewidth]{figs/perturbaciones_entradaTrapezoidal.png}
@@ -834,12 +797,26 @@ Para comparar con una consigna más realista, se propone repetir la simulación 
     \label{fig:perturbaciones_trapezoidal}
 \end{figure}
 
+En la figura \ref{fig:perturbaciones_trapezoidal} se muestra la evolución de las perturbaciones aplicadas al modelo. El torque autoalineante $T_a$ presenta un pico inicial durante el transitorio y luego converge a un valor constante menor a $40\ \mathrm{N\,m}$. Esta carga sostenida explica el error estacionario observado en la figura \ref{fig:respuesta_trapezoidal}: el controlador LQR no posee acción integral y, al existir una perturbación constante sobre la rueda, el equilibrio final se alcanza con una pequeña diferencia entre $\delta$ y $\delta_{ref}$.
+
+No se incorporó acción integral en el controlador final porque, en una aplicación de dirección, la referencia es generada de manera continua por el conductor o por un sistema de asistencia, y no suele permanecer fija durante largos intervalos como en un problema clásico de regulación. Además, en las pruebas realizadas se implementó una variante LQRI, pero no resultó efectiva para eliminar completamente el error estacionario ante perturbaciones sostenidas. Esto se debe a que el integrador fue diseñado sobre el error de $\delta$, mientras que en la arquitectura propuesta la medición disponible para el observador es la posición de cremallera $y_c$. Ante perturbaciones externas aplicadas sobre la rueda puede existir una diferencia estacionaria entre $y_c$ y $\delta$ debido a la elasticidad del sistema mecánico.
+
+Para que un LQRI resulte adecuado en esta arquitectura sería necesario medir directamente $\delta$ o, alternativamente, diseñar un observador de estado aumentado que estime las perturbaciones externas constantes. También debería incorporarse una estrategia de \textit{anti-windup}, ya que el actuador se encuentra limitado a $\pm48\ \mathrm{V}$ y, cuando trabaja cerca de la saturación, el integrador puede acumular error aunque el sistema no pueda aplicar la tensión demandada. Por estos motivos, en este trabajo se priorizó una respuesta rápida y limitada por las capacidades físicas del actuador, aceptando un pequeño error estacionario ante perturbaciones sostenidas.
+
+Las fricciones $F_f$ y $T_f$ fueron implementadas mediante funciones arcotangente para evitar saltos discontinuos entre valores positivos y negativos. Por este motivo, cuando el sistema se aproxima al equilibrio y la velocidad cambia de signo por pequeñas correcciones del controlador, las fricciones oscilan alrededor de su cambio de signo.
+
+Analizando entonces los gráficos de perturbaciones, se observa que el torque autoalineante $T_a$ es la perturbación dominante durante la maniobra, pudiendo alcanzar valores 50 veces mayores que el torque de fricción $T_f$.
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=1\linewidth]{figs/Esfuerzo_entradaTrapezoidal.png}
     \caption{Fuerza $F_{cr}$ y torque $T_{fw}$ efectivos aplicados sobre cremallera y rueda, respectivamente.}
     \label{fig:esfuerzo_trapezoidal}
 \end{figure}
+
+Como puede verse en la figura \ref{fig:esfuerzo_trapezoidal}, la fuerza $F_{cr}$ aplicada sobre la cremallera y el torque $T_{fw}$ aplicado sobre la rueda son significativamente superiores a las perturbaciones modeladas. Esto indica que la arquitectura mecánica elegida tiene la capacidad de generar las fuerzas y torques suficientes como para poder hacer que el sistema siga a la referencia a pesar de perturbaciones de gran magnitud como $T_a$.
+
+\subsubsection{Validación de operación del motor}
 
 \begin{figure}[H]
     \centering
@@ -867,43 +844,22 @@ $\max(|\omega_m|)$ & $780\ \mathrm{rpm}$ & $800\ \mathrm{rpm}$ \\
 \end{tabular}
 \end{table}
 
-Como se observa en la tabla \ref{tab:validacion_motor_trapezoidal}, la referencia trapezoidal reduce la exigencia transitoria sobre el actuador y mantiene corriente, torque y velocidad dentro de los límites adoptados para el motor.
+Como se observa en la tabla \ref{tab:validacion_motor_trapezoidal}, los valores de tensión, corriente, torque y velocidad se mantienen dentro de los límites admisibles. En pruebas realizadas utilizando referencia escalón, el pico de corriente podía alcanzar valores de casi $100 A$, y velocidades de $1200 rpm$; de allí la importancia de usar entradas trapezoidales para hacer la validacion del motor.
 
 Como puede observarse en la gráfica de $V_m$, el controlador LQR fue ajustado para aprovechar al máximo la capacidad disponible del actuador, incluso cuando esto implica alcanzar la saturación de tensión. Este criterio de diseño se adoptó porque el sistema está orientado a vehículos tripulados, donde se prioriza la seguridad y resulta necesario que el conductor pueda realizar maniobras rápidas y precisas ante situaciones de emergencia.
 
-\subsubsection{Efecto de perturbaciones con referencia a \texorpdfstring{$35^\circ$}{35°}}
+\subsubsection{Caso particular a \texorpdfstring{$100\ \mathrm{km/h}$}{100 km/h}}
 
-
-
-En los gráficos de $F_f$ y $T_f$ se observa que las fricciones de cremallera y pivote de rueda alcanzan sus valores máximos durante el movimiento continuo en una dirección. Una vez alcanzada la referencia, el controlador realiza pequeñas correcciones de tensión para compensar estas perturbaciones y sostener la posición de equilibrio. Aunque las fricciones secas fueron suavizadas mediante funciones arcotangente, siguen comportándose como cargas no lineales alrededor de velocidad nula.
-
-Por otro lado, el torque autoalineante $T_a$ alcanza un valor máximo de $72\ \mathrm{N\,m}$ durante la maniobra. Luego cae prácticamente a cero porque la referencia de $35^\circ$ representa un giro muy grande para una velocidad longitudinal fija de $40\ \mathrm{km/h}$. En el modelo utilizado, al aumentar el ángulo de deriva la fuerza lateral tiende a saturarse y el \textit{pneumatic trail} efectivo disminuye exponencialmente. Por lo tanto, el producto $T_a=F_{y,\mathrm{wheel}}\,t_{\mathrm{eff}}$ presenta un máximo y luego decrece. Esta caída no debe interpretarse como ausencia real de esfuerzo en el neumático, sino como la simplificación adoptada para representar que, a grandes ángulos de deriva, el neumático pierde agarre y el torque autoalineante pierde capacidad restauradora (efecto de subviraje). En este caso en particular, el vehiculo dejaria de rotar por mas que las ruedas hayan rotado.
-
-Como puede verse en la figura \ref{fig:esfuerzo_trapezoidal}, la fuerza $F_{cr}$ y el torque $T_{fw}$ aplicados sobre la cremallera y la rueda son significativamente superiores a las perturbaciones modeladas. Además, el valor máximo de $F_{cr}$ se mantiene por debajo del límite de fuerza activa declarado para el \hyperlink{ref:schaeffler-rwa}{Road Wheel Actuator de Schaeffler}, que es de hasta $20\ \mathrm{kN}$. Por lo tanto, el actuador cuenta con margen suficiente para compensar estos efectos y el controlador logra mantener un seguimiento adecuado de la referencia.
-
-\subsubsection{Efecto de perturbaciones con referencia a \texorpdfstring{$5^\circ$}{5°}}
-
-Para analizar un caso más representativo de una maniobra moderada, se repite la simulación con una referencia trapezoidal de $5^\circ$ y velocidad longitudinal fija de $40\ \mathrm{km/h}$.
+Como caso particular, se repitió el análisis con una velocidad longitudinal de $100\ \mathrm{km/h}$. Este escenario no se adopta como condición nominal de validación, sino como una prueba para interpretar el comportamiento del modelo de torque autoalineante fuera de la zona de maniobra moderada. En esa condición, para una referencia de $35^\circ$, el ángulo de deriva resultante es mucho más severo. Dentro de la simplificación adoptada para el neumático, la fuerza lateral alcanza rápidamente su zona de saturación y el \textit{pneumatic trail} efectivo disminuye hasta valores muy pequeños. Por ese motivo, el torque autoalineante presenta un pico transitorio y luego cae prácticamente a cero. Este comportamiento no debe interpretarse como ausencia de esfuerzos reales en el neumático, sino como una consecuencia del modelo simplificado utilizado para representar la pérdida de capacidad restauradora a grandes ángulos de deriva y alta velocidad. Ante dicha situacion, el usuario notaria falta de agarre y que el vehiculo se va recto por mas que el volante y las ruedas estén rotados. A este fenoméno se lo conoce como subviraje o \textit{understeer}.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\linewidth]{figs/perturbaciones_5deg.png}
-    \caption{Perturbaciones $F_f$, $T_f$ y $T_a$ durante la respuesta a referencia trapezoidal de $5^\circ$}
-    \label{fig:perturbaciones_5deg}
+    \includegraphics[width=0.9\linewidth]{figs/rta_100kmh.png}
+    \caption{Torque autoalineante $T_a(t)$ y respuesta $\delta(t)$ ante referencia trapezoidal de $35^\circ$ a $100\ \mathrm{km/h}$}
+    \label{fig:rta_100kmh}
 \end{figure}
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=1\linewidth]{figs/rta_5deg.png}
-    \caption{Respuesta $\delta(t)$ y $y_c(t)$ ante una referencia trapezoidal de $5^\circ$}
-    \label{fig:rta_5deg}
-\end{figure}
-
-En este caso el ángulo de deriva permanece dentro de una zona donde el modelo no lleva al neumático a saturación lateral severa. Por ese motivo, la fuerza lateral y el \textit{pneumatic trail} efectivo alcanzan valores estacionarios no nulos cuando $\delta(t)$ se estabiliza. Como ambos términos quedan aproximadamente constantes, el torque autoalineante también converge a un valor constante, en este caso de aproximadamente $56.4\ \mathrm{N\,m}$. Esta perturbación sostenida introduce un error estacionario cercano a $0.6^\circ$ en el seguimiento de la referencia.
-
-No se incorporó acción integral en el controlador final porque, en una aplicación de dirección, la referencia es generada de manera continua por el conductor o por un sistema de asistencia, y no suele permanecer fija durante largos intervalos como en un problema clásico de regulación. Además, en las pruebas realizadas se implementó una variante LQRI, pero no resultó efectiva para eliminar completamente el error estacionario ante perturbaciones sostenidas. Esto se debe a que el integrador fue diseñado sobre el error de $\delta$, mientras que en la arquitectura propuesta la medición disponible para el observador es la posición de cremallera $y_c$. Ante perturbaciones externas aplicadas sobre la rueda, como el torque autoalineante, puede existir una diferencia estacionaria entre $y_c$ y $\delta$ debido a la elasticidad del sistema mecánico.
-
-Para que un LQRI resulte adecuado en esta arquitectura sería necesario medir directamente $\delta$ o, alternativamente, diseñar un observador de estado aumentado que estime las perturbaciones externas constantes. También debería incorporarse una estrategia de \textit{anti-windup}, ya que el actuador se encuentra limitado a $\pm48\ \mathrm{V}$ y, cuando trabaja cerca de la saturación, el integrador puede acumular error aunque el sistema no pueda aplicar la tensión demandada. Por estos motivos, en este trabajo se priorizó una respuesta rápida y limitada por las capacidades físicas del actuador, aceptando un pequeño error estacionario ante perturbaciones sostenidas.
+En la figura \ref{fig:rta_100kmh} puede observarse que al hacerse nulo $T_a$, $\delta$ converge a la referencia sin un error estacionario apreciable. 
 
 \subsubsection{Simulación en Unity}
 
@@ -911,7 +867,7 @@ Para validar el comportamiento del modelo matemático con entradas más cercanas
 
 En el entorno de Unity se utiliza como base el controlador físico \hyperlink{ref:prometeo-car-controller}{\textit{PROMETEO: Car Controller}}. En su implementación original, el controlador recibe una entrada asociada al giro del volante y la transforma internamente en una consigna de dirección para las ruedas, incorporando además un retardo para representar el atraso físico entre la acción sobre el volante y la respuesta de giro de los neumáticos. En este trabajo, dicha dinámica ya se encuentra representada en el modelo desarrollado en Simulink, por lo que no resulta necesario volver a incorporarla dentro del entorno de Unity. Por este motivo, se modificó el controlador PROMETEO para aplicar directamente $\delta(t)$ como ángulo de giro a las ruedas delanteras. De esta manera, el vehículo no es rotado artificialmente, sino que su movimiento resulta de la interacción física entre las ruedas y el suelo dentro del motor de física de Unity, de forma análoga a lo que ocurre en un vehículo real.
 
-Esta prueba permite verificar cualitativamente que la respuesta del controlador no solo alcanza correctamente la referencia en las gráficas de Simulink, sino que además produce una maniobra coherente y familiar para el usuario. En el siguiente enlace puede verse un video donde se muestra una prueba de la interacción entre ambos sistemas, además de gráficas mínimas para mostrar el seguimiento de la respuesta y parámetros del motor en tiempo real:
+Esta prueba permite verificar cualitativamente que la respuesta del controlador no solo sigue de manera coherente la referencia en las gráficas de Simulink, sino que además produce una maniobra familiar para el usuario. En el siguiente enlace puede verse un video donde se muestra una prueba de la interacción entre ambos sistemas, además de gráficas mínimas para mostrar el seguimiento de la respuesta y parámetros del motor en tiempo real:
 
 \begin{center}
 \href{URL_DEL_VIDEO}{Video de validación en Unity}
@@ -919,7 +875,7 @@ Esta prueba permite verificar cualitativamente que la respuesta del controlador 
 
 \section{Conclusiones}
 
-En el trabajo desarrollado los resultados muestran que el sistema puede seguir referencias de dirección exigentes y que el actuador seleccionado opera dentro de límites razonables cuando las consignas se plantean de forma realista. Además, la simulación con perturbaciones permitió verificar que el actuador cuenta con margen suficiente para compensar fricción y torque autoalineante en las condiciones evaluadas.
+En el trabajo desarrollado los resultados muestran que el sistema puede seguir referencias de dirección exigentes y que el actuador seleccionado opera dentro de límites razonables cuando las consignas se plantean de forma realista. Además, la simulación con perturbaciones permitió verificar que el actuador cuenta con margen suficiente para contrarrestar fricción y torque autoalineante, aunque también evidenció la aparición de un pequeño error estacionario cuando el torque autoalineante se mantiene como perturbación sostenida.
 
 La validación adicional en Unity permitió comprobar de manera cualitativa que la salida del modelo no solo es consistente en las gráficas de Simulink, sino que también produce una respuesta vehicular coherente al aplicarse sobre un modelo físico interactivo. Esta prueba resulta útil como paso intermedio entre la simulación puramente matemática y una implementación experimental, ya que permite observar el efecto del ángulo de rueda calculado sobre la dinámica visible del vehículo.
 
