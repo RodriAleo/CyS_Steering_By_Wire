@@ -438,7 +438,8 @@ La ley de control queda definida como:
 u(t)\;=\;-K\,x(t)\;+\;k_{r}\,r(t)
 \end{equation}
 
-donde $K$ se obtiene resolviendo la ecuación de Riccati asociada y $k_{r}$ ajusta la ganancia de la referencia.  
+donde $K$ se obtiene resolviendo la ecuación de Riccati asociada y $k_{r}$ ajusta la ganancia de la referencia. La señal generada por esta ley de control se interpreta como la tensión que se desea aplicar al motor. Por este motivo, en la implementación de Simulink se limita la salida del controlador a $\pm48\ \mathrm{V}$ antes de enviarla al actuador y al observador. Esta saturación representa el límite de tensión del \hyperlink{ref:mosrac-u13060}{motor Mosrac U13060 de $48\ \mathrm{V}$} adoptado para el actuador de ruedas.
+
 Se ha preferido LQR sobre un controlador PID por su capacidad de penalizar simultáneamente desviaciones de estado y esfuerzo de control, lo que facilita limitar la saturación del actuador y garantizar un compromiso óptimo entre desempeño transitorio y magnitud de la señal de control.
 
 Lo realmente importante de este método es definir correctamente las matrices $Q_x$ y $Q_u$. En el modelo implementado, la salida de desempeño utilizada para el LQR es el ángulo de las ruedas delanteras:
@@ -496,6 +497,46 @@ k_{r} = -\bigl(C_{p} \cdot (A - B_{c} \cdot K_{\mathrm{lqr}})^{-1} \cdot B_{c}\b
     \caption{Bloque de controlador LQR en Simulink}
     \label{fig:bloque_LQR}
 \end{figure}
+
+\subsection{Limitaciones en el actuador}
+
+Luego de limitar la señal de control a los valores admisibles del motor, el actuador de potencia se modela como una etapa ideal de modulación de tensión con ganancia unitaria. De este modo, la señal $u(t)$ entregada por el controlador se convierte directamente en la tensión aplicada al motor:
+
+\begin{equation}
+V_m(t)=u(t).
+\end{equation}
+
+Esta simplificación implica que no se modelan de forma explícita el inversor, el PWM, la dinámica interna del driver ni los retardos asociados a la electrónica de potencia. Los límites físicos del actuador se consideran previamente en la salida del controlador mediante la saturación de tensión, y luego se verifican junto con el resto de restricciones eléctricas y mecánicas del motor.
+
+Los límites utilizados para validar la operación del motor se adoptan a partir del \hyperlink{ref:mosrac-u13060}{motor Mosrac U13060 de $48\ \mathrm{V}$}, utilizado como referencia del actuador equivalente. Estos valores se resumen en la tabla \ref{tab:limites_motor}.
+
+\begin{table}[H]
+\small
+\centering
+\caption{Límites de operación utilizados para validar el motor}
+\label{tab:limites_motor}
+\begin{tabular}{l c}
+\toprule
+\textbf{Magnitud} & \textbf{Límite adoptado} \\
+\midrule
+Tensión máxima $|V_m|$ & $48\ \mathrm{V}$ \\
+Corriente continua $I_{\mathrm{cont}}$ & $30\ \mathrm{A}$ \\
+Corriente pico $I_{\mathrm{peak}}$ & $70\ \mathrm{A}$ \\
+Torque continuo $T_{\mathrm{cont}}$ & $18\ \mathrm{N\,m}$ \\
+Torque pico $T_{\mathrm{peak}}$ & $40\ \mathrm{N\,m}$ \\
+Velocidad nominal $|\omega_{m,\mathrm{nom}}|$ & $400\ \mathrm{rpm}$ \\
+Velocidad máxima $|\omega_m|$ & $800\ \mathrm{rpm}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{figs/bloque_Actuador.png}
+    \caption{Bloque de actuador con modulación ideal de tensión}
+    \label{fig:bloque_Actuador}
+\end{figure}
+
 
 \subsection{Sensor}
 
@@ -642,59 +683,6 @@ u(t)=-K_{\mathrm{lqr}}\hat{x}(t)+k_r r(t).
 \end{figure}
 
 Cabe destacar que $\delta_{obs}$ se utiliza únicamente para comparar la estimacion con respecto al valor real.
-
-\subsection{Limitaciones en el actuador}
-
-El actuador de potencia se modela como una etapa ideal de modulación de tensión con ganancia unitaria. De este modo, la señal de control calculada por el controlador se interpreta directamente como la tensión de referencia aplicada al motor:
-
-\begin{equation}
-u(t)=V_m^{*}(t).
-\end{equation}
-
-Esta simplificación implica que no se modelan de forma explícita el inversor, el PWM, la dinámica interna del driver ni los retardos asociados a la electrónica de potencia.
-
-La elección de un actuador de $48\ \mathrm{V}$ se considera compatible con arquitecturas automotrices modernas, donde sistemas de $48\ \mathrm{V}$ se utilizan para alimentar cargas de mayor potencia que las disponibles en una red tradicional de $12\ \mathrm{V}$. Esta tendencia se observa, por ejemplo, en sistemas híbiridos como el de \hyperlink{ref:bosch-48v}{Bosch}. En este trabajo se adopta este nivel de tensión para disponer de mayor potencia eléctrica en el actuador. Por este motivo, la tensión efectiva queda limitada por la saturación física del bus de alimentación adoptada:
-
-\begin{equation}
-V_m(t)=
-\mathrm{sat}\left(V_m^{*}(t)\right)=
-\begin{cases}
-48, & V_m^{*}(t)>48,\\
-V_m^{*}(t), & -48\leq V_m^{*}(t)\leq 48,\\
--48, & V_m^{*}(t)<-48.
-\end{cases}
-\end{equation}
-
-De esta manera, el controlador puede demandar una tensión mayor en situaciones transitorias exigentes, pero el motor solo recibe el valor físicamente admisible. Esta saturación no forma parte del modelo lineal utilizado para diseñar el LQR, sino que se incorpora en Simulink para evaluar el comportamiento del sistema bajo limitaciones realistas de actuación.
-
-Los límites utilizados para validar la operación del motor se adoptan a partir del \hyperlink{ref:mosrac-u13060}{motor Mosrac U13060 de $48\ \mathrm{V}$}, utilizado como referencia del actuador equivalente. Estos valores se resumen en la tabla \ref{tab:limites_motor}.
-
-\begin{table}[H]
-\small
-\centering
-\caption{Límites de operación utilizados para validar el motor}
-\label{tab:limites_motor}
-\begin{tabular}{l c}
-\toprule
-\textbf{Magnitud} & \textbf{Límite adoptado} \\
-\midrule
-Tensión máxima $|V_m|$ & $48\ \mathrm{V}$ \\
-Corriente continua $I_{\mathrm{cont}}$ & $30\ \mathrm{A}$ \\
-Corriente pico $I_{\mathrm{peak}}$ & $70\ \mathrm{A}$ \\
-Torque continuo $T_{\mathrm{cont}}$ & $18\ \mathrm{N\,m}$ \\
-Torque pico $T_{\mathrm{peak}}$ & $40\ \mathrm{N\,m}$ \\
-Velocidad nominal $|\omega_{m,\mathrm{nom}}|$ & $400\ \mathrm{rpm}$ \\
-Velocidad máxima $|\omega_m|$ & $800\ \mathrm{rpm}$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.7\linewidth]{figs/bloque_Actuador.png}
-    \caption{Bloque de actuador con modulación ideal y saturación de tensión}
-    \label{fig:bloque_Actuador}
-\end{figure}
 
 \subsection{Perturbaciones}
 

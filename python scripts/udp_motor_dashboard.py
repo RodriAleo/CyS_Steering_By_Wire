@@ -33,6 +33,7 @@ from dataclasses import dataclass
 
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from matplotlib.gridspec import GridSpec
 
 plt.rcParams["toolbar"] = "None"
 
@@ -213,33 +214,9 @@ class UdpMotorCurveApp:
 
         self.update_interval_ms = UPDATE_INTERVAL_MS
 
-        self.fig_motor, self.ax_motor = self.create_figure(
-            "Curva torque-velocidad del motor",
-            figsize=(8.8, 5.2),
-        )
-        self.fig_delta, self.ax_delta = self.create_figure(
-            "Seguimiento de angulo de rueda",
-            figsize=(6.4, 3.8),
-        )
-        self.fig_vm, self.ax_vm = self.create_figure(
-            "Tension aplicada al motor",
-            figsize=(6.4, 3.8),
-        )
-        self.fig_im, self.ax_im = self.create_figure(
-            "Corriente del motor",
-            figsize=(6.4, 3.8),
-        )
-        self.fig_ta, self.ax_ta = self.create_figure(
-            "Torque autoalineante",
-            figsize=(6.4, 3.8),
-        )
-        self.figures = [
-            self.fig_motor,
-            self.fig_delta,
-            self.fig_vm,
-            self.fig_im,
-            self.fig_ta,
-        ]
+        self.fig, (self.ax_motor, self.ax_delta, self.ax_vm, self.ax_im, self.ax_ta) = self.create_dashboard()
+        self.figures = [self.fig]
+        self.fig_motor = self.fig
 
         rpm_curve = [0.0, 400.0, 800.0]
         t_cont = [18.0, 18.0, 0.0]
@@ -370,9 +347,8 @@ class UdpMotorCurveApp:
             fontsize=10,
         )
 
-        for fig in self.figures:
-            fig.canvas.mpl_connect("close_event", self.on_close)
-            fig.canvas.mpl_connect("resize_event", self.on_resize)
+        self.fig.canvas.mpl_connect("close_event", self.on_close)
+        self.fig.canvas.mpl_connect("resize_event", self.on_resize)
 
         self.apply_initial_window_layout()
         self.register_figure_fonts()
@@ -387,46 +363,30 @@ class UdpMotorCurveApp:
             self.sock.close()
         except OSError:
             pass
-        plt.close("all")
+        plt.close(self.fig)
 
     @staticmethod
-    def create_figure(title: str, figsize: tuple[float, float]):
-        fig, ax = plt.subplots(figsize=figsize)
-        fig.canvas.manager.set_window_title(title)
-        fig.subplots_adjust(left=0.12, right=0.96, bottom=0.14, top=0.93)
-        return fig, ax
+    def create_dashboard():
+        fig = plt.figure(figsize=(6.4, 9.2))
+        fig.canvas.manager.set_window_title("Motor dashboard")
+        grid = GridSpec(3, 2, figure=fig, height_ratios=[1.15, 1.0, 1.0])
+        ax_motor = fig.add_subplot(grid[0, :])
+        ax_delta = fig.add_subplot(grid[1, 0])
+        ax_ta = fig.add_subplot(grid[1, 1])
+        ax_im = fig.add_subplot(grid[2, 0])
+        ax_vm = fig.add_subplot(grid[2, 1])
+        fig.subplots_adjust(left=0.12, right=0.97, bottom=0.06, top=0.95, hspace=0.52, wspace=0.36)
+        return fig, (ax_motor, ax_delta, ax_vm, ax_im, ax_ta)
 
     def apply_initial_window_layout(self) -> None:
         screen_x, screen_y, screen_w, screen_h = self.get_screen_geometry()
         outer_margin = 12
-        gap = 10
         titlebar_allowance = 34
-
-        target_third_w = screen_w // 3 - 2 * outer_margin
-        total_w = min(max(520, target_third_w), 640)
-        cell_w = (total_w - gap) // 2
-        total_w = 2 * cell_w + gap
-
-        usable_h = max(620, screen_h - 2 * outer_margin)
-        cell_h = max(180, (usable_h - 2 * gap - 3 * titlebar_allowance) // 3)
-
-        x0 = screen_x + screen_w - total_w - outer_margin
-        y0 = screen_y + outer_margin
-        row_step = cell_h + titlebar_allowance + gap
-        y1 = y0 + row_step
-        y2 = y1 + row_step
-        x1 = x0 + cell_w + gap
-
-        geometries = [
-            (self.fig_motor, x0, y0, total_w, cell_h),
-            (self.fig_delta, x0, y1, cell_w, cell_h),
-            (self.fig_ta, x1, y1, cell_w, cell_h),
-            (self.fig_im, x0, y2, cell_w, cell_h),
-            (self.fig_vm, x1, y2, cell_w, cell_h),
-        ]
-
-        for fig, x, y, width, height in geometries:
-            self.set_window_geometry(fig, x, y, width, height)
+        width = min(max(560, screen_w // 3 - 2 * outer_margin), 680)
+        height = max(640, screen_h - 2 * outer_margin - titlebar_allowance)
+        x = screen_x + screen_w - width - outer_margin
+        y = screen_y + outer_margin
+        self.set_window_geometry(self.fig, x, y, width, height)
 
     def get_screen_geometry(self) -> tuple[int, int, int, int]:
         window = self.fig_motor.canvas.manager.window
@@ -574,7 +534,7 @@ class UdpMotorCurveApp:
 
     def update(self, _frame):
         if not self.running:
-            plt.close("all")
+            plt.close(self.fig)
             return (
                 self.trace_line,
                 self.point,
@@ -831,7 +791,7 @@ class UdpMotorCurveApp:
 
     def run(self) -> None:
         self.animation = FuncAnimation(
-            self.fig_motor,
+            self.fig,
             self.update,
             interval=self.update_interval_ms,
             blit=False,
