@@ -175,7 +175,7 @@ $r_p$     & Radio equivalente del husillo & $5.09 \times 10^{-3}$ & $\mathrm{m/r
 \midrule
 $B_f$     & Fricción viscosa de rueda & $30$      & $\mathrm{N \cdot m \cdot s / rad}$ \\
 $K_f$     & Rigidez del enlace a rueda & $26000$   & $\mathrm{N \cdot m / rad}$ \\
-$I_f$     & Inercia de giro de rueda & $0.270$   & $\mathrm{kg \cdot m^2}$ \\
+$J_f$     & Inercia de giro de rueda & $0.270$   & $\mathrm{kg \cdot m^2}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -202,7 +202,7 @@ Teniendo en cuenta las ecuaciones \ref{ec_electrica}, \ref{ec_motor}, \ref{ec_cr
 \label{sistema_completo}
 \end{equation}
 
-Debido a que el sistema es lineal, puede ser representado de forma matricial utilizando espacio de estados:
+El modelo de la planta se representa mediante un modelo lineal en espacio de estados:
 
 \begin{equation}
 \left\{
@@ -232,7 +232,7 @@ v_c(t) &
 A =
 \begin{bmatrix}
 -\frac{R_m}{L_m} & 0 & -\frac{K_e}{L_m} & 0 & 0 & 0 & 0 \\
-0 & 0 & 1 & 0 & 0 & 0 & 0 & \\
+0 & 0 & 1 & 0 & 0 & 0 & 0 \\
 \frac{K_t}{J_m} & -\frac{K_a}{J_m} & -\frac{B_m}{J_m} & \frac{K_a}{r_p\cdot J_m} & 0 & 0 & 0 \\
 0 & 0 & 0 & 0 & 1 & 0 & 0 \\
 0 & \frac{K_a}{r_p \cdot M_{cr}} & 0 & -\left(\frac{2\cdot K_f}{r_l^2} + \frac{K_a}{r_p^2} \right)\cdot \frac{1}{M_{cr}} & -\frac{B_{cr}}{M_{cr}} & \frac{2\cdot K_f}{r_l \cdot M_{cr}} & 0 \\
@@ -459,7 +459,7 @@ Q_x=C_p^T\,Q_y\,C_p.
 La entrada de control corresponde a la tensión aplicada al motor, por lo que $Q_u$ se define como:
 
 \begin{equation}
-Q_{u} = \frac{\rho}{V_{m-max}^2}
+Q_{u} = \frac{\rho}{V_{m,\max}^2}
 \end{equation}
 
 Los coeficientes $\alpha_{\delta}$ y $\rho$ se eligen para equilibrar desempeño transitorio y magnitud de $u(t)$. Aumentar $\alpha_{\delta}$ exige con mayor rigidez el seguimiento de $\delta(t)$; aumentar $\rho$ penaliza más el uso de tensión del motor y suaviza la acción de control. En la tabla \ref{tab:valores_maximos_lqr} se definen los valores máximos usados para normalizar estas magnitudes.
@@ -474,12 +474,12 @@ Los coeficientes $\alpha_{\delta}$ y $\rho$ se eligen para equilibrar desempeño
 \textbf{Variable} & \textbf{Valor máximo} \\
 \midrule
 $\delta_{max}$ & $0.61 \; \mathrm{rad} \; = 35^\circ$ \\
-$V_{m-max}$ & $48 \; \mathrm{V}$ \\
+$V_{m,\max}$ & $48 \; \mathrm{V}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Luego de realizada varias pruebas, se optó por darle al los coeficientes los siguientes valores: $\alpha_{\delta}=1$ y $\rho=0.25$. Una vez definidas estas matrices, la ganancia de realimentación de estados se obtiene como:
+Luego de realizar varias pruebas, se optó por dar a los coeficientes los siguientes valores: $\alpha_{\delta}=1$ y $\rho=0.15$. Una vez definidas estas matrices, la ganancia de realimentación de estados se obtiene como:
 
 \begin{equation}
 K_{\mathrm{lqr}}=\mathrm{lqr}(A,B_c,Q_x,Q_u).
@@ -564,19 +564,19 @@ Los parámetros adoptados para la simulación se muestran en la tabla \ref{tab:p
 \textbf{Parámetro} & \textbf{Valor} & \textbf{Interpretación} \\
 \midrule
 $T_{s,sensor}$ & $0.01\ \mathrm{s}$ & período de actualización de la medición \\
-$\tau_{sensor}$ & $0.01\ \mathrm{s}$ & constante de tiempo del filtro de primer orden \\
-$e_{yc,\max}$ & $0.135\ \mathrm{mm}=1.35\times10^{-4}\ \mathrm{m}$ & error máximo de medición adoptado \\
-$\sigma_{yc}$ & $0.078\ \mathrm{mm}=7.79\times10^{-5}\ \mathrm{m}$ & desviación estándar equivalente del error uniforme \\
-$q_{yc}$ & $0.033\ \mathrm{mm}=3.3\times10^{-5}\ \mathrm{m}$ & intervalo de cuantización \\
+$\tau_{sensor}$ & $0.001\ \mathrm{s}$ & constante de tiempo del filtro de primer orden \\
+$e_{yc,\max}$ & $0.140\ \mathrm{mm}=1.40\times10^{-4}\ \mathrm{m}$ & error máximo de medición adoptado \\
+$\sigma_{yc}$ & $0.081\ \mathrm{mm}=8.08\times10^{-5}\ \mathrm{m}$ & desviación estándar equivalente del error uniforme \\
+$q_{yc}$ & $0.034\ \mathrm{mm}=3.42\times10^{-5}\ \mathrm{m}$ & intervalo de cuantización \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-El datasheet del \hyperlink{ref:mlx90513}{Melexis MLX90513} especifica un error máximo de $\pm 0.1\%$ del fondo de escala. Considerando la carrera de cremallera utilizada en el modelo, $L_{yc}=135\ \mathrm{mm}$, dicho error equivale a:
+El datasheet del \hyperlink{ref:mlx90513}{Melexis MLX90513} especifica un error máximo de $\pm 0.1\%$ del fondo de escala. Considerando la carrera de cremallera utilizada en el modelo, $L_{yc}=140\ \mathrm{mm}$, dicho error equivale a:
 
 \begin{equation}
-e_{yc,\max}=0.001\,L_{yc}=0.001\cdot135\ \mathrm{mm}
-=0.135\ \mathrm{mm}=1.35\times10^{-4}\ \mathrm{m}.
+e_{yc,\max}=0.001\,L_{yc}=0.001\cdot140\ \mathrm{mm}
+=0.140\ \mathrm{mm}=1.40\times10^{-4}\ \mathrm{m}.
 \end{equation}
 
 Además, en la tabla de especificaciones eléctricas se indica un ruido RMS de la señal de posición de $0.070^\circ_{\mathrm{el}}$ para la configuración menos favorable. Se utilizan grados eléctricos porque el sensor mide la fase de un sistema inductivo. En una aplicación lineal, dicha fase se calibra contra la carrera mecánica medida. Si se considera una calibración lineal de una vuelta eléctrica sobre la carrera útil de la cremallera, el ruido RMS equivalente resulta:
@@ -585,31 +585,31 @@ Además, en la tabla de especificaciones eléctricas se indica un ruido RMS de l
 \sigma_{yc,\mathrm{RMS}}\simeq
 \frac{0.070^\circ_{\mathrm{el}}}{360^\circ_{\mathrm{el}}}\,L_{yc}
 =
-\frac{0.070^\circ_{\mathrm{el}}}{360^\circ_{\mathrm{el}}}\cdot135\ \mathrm{mm}
-=0.026\ \mathrm{mm}=2.6\times10^{-5}\ \mathrm{m}.
+\frac{0.070^\circ_{\mathrm{el}}}{360^\circ_{\mathrm{el}}}\cdot140\ \mathrm{mm}
+=0.027\ \mathrm{mm}=2.72\times10^{-5}\ \mathrm{m}.
 \end{equation}
 
-Sin embargo, para modelar el sensor se usa el error máximo $e_{yc,\max}=0.135\ \mathrm{mm}$, ya que este valor contempla no solo el ruido aleatorio sino también no linealidades (térmicas y magnéticas), errores de calibración y efectos de montaje. Como el ruido se implementa mediante una variable uniforme acotada entre $\pm e_{yc,\max}$, la desviación estándar equivalente usada para la covarianza de medición es:
+Sin embargo, para modelar el sensor se usa el error máximo $e_{yc,\max}=0.140\ \mathrm{mm}$, ya que este valor contempla no solo el ruido aleatorio sino también no linealidades (térmicas y magnéticas), errores de calibración y efectos de montaje. Como el ruido se implementa mediante una variable uniforme acotada entre $\pm e_{yc,\max}$, la desviación estándar equivalente usada para la covarianza de medición es:
 
 \begin{equation}
-\sigma_{yc}=\frac{e_{yc,\max}}{\sqrt{3}}=0.078\ \mathrm{mm}
-=7.8\times10^{-5}\ \mathrm{m}.
+\sigma_{yc}=\frac{e_{yc,\max}}{\sqrt{3}}=0.081\ \mathrm{mm}
+=8.08\times10^{-5}\ \mathrm{m}.
 \end{equation}
 
-Además, el hoja de datos declara que la salida PWM utiliza 12 bits. Si esos 12 bits se distribuyen sobre la carrera útil de la cremallera, el intervalo de cuantización ideal es:
+Además, la hoja de datos declara que la salida PWM utiliza 12 bits. Si esos 12 bits se distribuyen sobre la carrera útil de la cremallera, el intervalo de cuantización ideal es:
 
 \begin{equation}
 q_{yc,\mathrm{ideal}}=
 \frac{L_{yc}}{2^{12}}
 =
-\frac{135\ \mathrm{mm}}{4096}
-=0.033\ \mathrm{mm}=3.3\times10^{-5}\ \mathrm{m}.
+\frac{140\ \mathrm{mm}}{4096}
+=0.034\ \mathrm{mm}=3.42\times10^{-5}\ \mathrm{m}.
 \end{equation}
 
-La constante de tiempo $\tau_{sensor}=10\ \mathrm{ms}$ modela una dinámica efectiva de primer orden asociada al filtrado y acondicionamiento de la medición. No se interpreta como una especificación directa del integrado, sino como el filtro incluido en la cadena de medición simulada. Su frecuencia de corte equivalente es:
+La constante de tiempo $\tau_{sensor}=1\ \mathrm{ms}$ modela una dinámica efectiva de primer orden asociada al filtrado y acondicionamiento de la medición. No se interpreta como una especificación directa del integrado, sino como el filtro incluido en la cadena de medición simulada. Su frecuencia de corte equivalente es:
 
 \begin{equation}
-f_c=\frac{1}{2\pi\tau_{sensor}}=15.9\ \mathrm{Hz}.
+f_c=\frac{1}{2\pi\tau_{sensor}}=159.2\ \mathrm{Hz}.
 \end{equation}
 
 Por otro lado, $T_{s,sensor}=10\ \mathrm{ms}$ representa la actualización de la medición entregada al controlador. Este período no pretende ser el límite físico del integrado; en el modelo representa la medición digital retenida disponible para el lazo de control.
@@ -652,7 +652,7 @@ Para $Q$ se utiliza una matriz diagonal cuyos pesos se ajustan para ponderar la 
 \begin{equation}
 Q=\mathrm{diag}\left(
 \begin{bmatrix}
-0.1 & 1 & 1 & 5 & 5 & 5 & 5
+0.1 & 0.1 & 0.1 & 0.1 & 0.1 & 0.1 & 0.1
 \end{bmatrix}
 \right).
 \end{equation}
@@ -662,12 +662,12 @@ Aumentar los valores de $Q$ implica asumir mayor incertidumbre en el modelo de p
 Por otro lado, la covarianza de medición se obtiene directamente del modelo de ruido adoptado para el sensor. La desviación estándar equivalente del error uniforme se usa para definir:
 
 \begin{equation}
-R=5\sigma_{yc}^{2}
-=5\left(7.8\times10^{-5}\right)^2
-=3.04\times10^{-8}\ \mathrm{m^2}.
+R=\sigma_{yc}^{2}
+=\left(8.08\times10^{-5}\right)^2
+=6.53\times10^{-9}\ \mathrm{m^2}.
 \end{equation}
 
-El factor multiplicativo aplicado sobre $\sigma_{yc}^{2}$ aumenta la covarianza de medición efectiva, reduciendo la confianza del observador en una medición que contiene error de cuantización, ruido y retención de orden cero. En las simulaciones se observó que utilizar directamente $R=\sigma_{yc}^{2}$ hacía al observador más sensible a la medición discreta y aumentaba la actividad de alta frecuencia, reduciendo la velocidad de simulación. Por este motivo se adoptó $R=5\sigma_{yc}^{2}$, valor que suaviza la estimación y mejora el tiempo de cómputo sin que se detectaran desmejoras apreciables en el seguimiento de $\delta(t)$ ni en las variables eléctricas y mecánicas supervisadas. 
+El valor de $R$ aumenta cuando se considera una medición menos confiable, reduciendo el peso de la corrección basada en el sensor. En cambio, un valor menor de $R$ hace que el observador siga con mayor intensidad la medición de $y_c$, aunque también puede volverlo más sensible al ruido, a la cuantización y a la retención de orden cero.
 
 Finalmente, el controlador LQR se implementa utilizando los estados estimados, por lo que la ley de control queda:
 
@@ -793,7 +793,7 @@ Para que un LQRI resulte adecuado en esta arquitectura sería necesario medir di
 
 Las fricciones $F_f$ y $T_f$ fueron implementadas mediante funciones arcotangente para evitar saltos discontinuos entre valores positivos y negativos. Por este motivo, cuando el sistema se aproxima al equilibrio y la velocidad cambia de signo por pequeñas correcciones del controlador, las fricciones oscilan alrededor de su cambio de signo.
 
-Analizando entonces los gráficos de perturbaciones, se observa que el torque autoalineante $T_a$ es la perturbación dominante durante la maniobra, pudiendo alcanzar valores 50 veces mayores que el torque de fricción $T_f$.
+Analizando entonces los gráficos de perturbaciones, se observa que el torque autoalineante $T_a$ es la perturbación dominante durante la maniobra. Para este caso particular de referencia trapezoidal de $35^\circ$, su pico transitorio puede alcanzar valores muy superiores al torque de fricción $T_f$.
 
 \begin{figure}[H]
     \centering
@@ -832,13 +832,13 @@ $\max(|\omega_m|)$ & $780\ \mathrm{rpm}$ & $800\ \mathrm{rpm}$ \\
 \end{tabular}
 \end{table}
 
-Como se observa en la tabla \ref{tab:validacion_motor_trapezoidal}, los valores de tensión, corriente, torque y velocidad se mantienen dentro de los límites admisibles. En pruebas realizadas utilizando referencia escalón, el pico de corriente podía alcanzar valores de casi $100 A$, y velocidades de $1200 rpm$; de allí la importancia de usar entradas trapezoidales para hacer la validacion del motor.
+Como se observa en la tabla \ref{tab:validacion_motor_trapezoidal}, los valores de tensión, corriente, torque y velocidad se mantienen dentro de los límites admisibles. En pruebas realizadas utilizando referencia escalón, el pico de corriente podía alcanzar valores de casi $100\ \mathrm{A}$ y velocidades de $1200\ \mathrm{rpm}$; de allí la importancia de usar entradas trapezoidales para hacer la validación del motor.
 
 Como puede observarse en la gráfica de $V_m$, el controlador LQR fue ajustado para aprovechar al máximo la capacidad disponible del actuador, incluso cuando esto implica alcanzar la saturación de tensión. Este criterio de diseño se adoptó porque el sistema está orientado a vehículos tripulados, donde se prioriza la seguridad y resulta necesario que el conductor pueda realizar maniobras rápidas y precisas ante situaciones de emergencia.
 
 \subsubsection{Caso particular a \texorpdfstring{$100\ \mathrm{km/h}$}{100 km/h}}
 
-Como caso particular, se repitió el análisis con una velocidad longitudinal de $100\ \mathrm{km/h}$. Este escenario no se adopta como condición nominal de validación, sino como una prueba para interpretar el comportamiento del modelo de torque autoalineante fuera de la zona de maniobra moderada. En esa condición, para una referencia de $35^\circ$, el ángulo de deriva resultante es mucho más severo. Dentro de la simplificación adoptada para el neumático, la fuerza lateral alcanza rápidamente su zona de saturación y el \textit{pneumatic trail} efectivo disminuye hasta valores muy pequeños. Por ese motivo, el torque autoalineante presenta un pico transitorio y luego cae prácticamente a cero. Este comportamiento no debe interpretarse como ausencia de esfuerzos reales en el neumático, sino como una consecuencia del modelo simplificado utilizado para representar la pérdida de capacidad restauradora a grandes ángulos de deriva y alta velocidad. Ante dicha situacion, el usuario notaria falta de agarre y que el vehiculo se va recto por mas que el volante y las ruedas estén rotados. A este fenoméno se lo conoce como subviraje o \textit{understeer}.
+Como caso particular, se repitió el análisis con una velocidad longitudinal de $100\ \mathrm{km/h}$. Este escenario no se adopta como condición nominal de validación, sino como una prueba para interpretar el comportamiento del modelo de torque autoalineante fuera de la zona de maniobra moderada. En esa condición, para una referencia de $35^\circ$, el ángulo de deriva resultante es mucho más severo. Dentro de la simplificación adoptada para el neumático, la fuerza lateral alcanza rápidamente su zona de saturación y el \textit{pneumatic trail} efectivo disminuye hasta valores muy pequeños. Por ese motivo, el torque autoalineante presenta un pico transitorio y luego cae prácticamente a cero. Este comportamiento no debe interpretarse como ausencia de esfuerzos reales en el neumático, sino como una consecuencia del modelo simplificado utilizado para representar la pérdida de capacidad restauradora a grandes ángulos de deriva y alta velocidad. Ante dicha situación, el usuario notaría falta de agarre y que el vehículo se va recto por más que el volante y las ruedas estén rotados. A este fenómeno se lo conoce como subviraje o \textit{understeer}.
 
 \begin{figure}[H]
     \centering
@@ -871,7 +871,7 @@ Esta prueba permite verificar cualitativamente que la respuesta del controlador 
 El código completo del proyecto, incluyendo el modelo de Simulink, el informe y los scripts auxiliares utilizados para la visualización en tiempo real, se encuentra disponible en el siguiente repositorio:
 
 \begin{center}
-\href{URL_DEL_REPOSITORIO}{Repositorio del proyecto}
+\href{https://github.com/RodriAleo/CyS_Steering_By_Wire/tree/main}{GITHUB: CyS\_Steering\_By\_Wire}
 \end{center}
 
 \section{Conclusiones}

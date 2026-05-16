@@ -254,10 +254,10 @@ fc = 10*fbw        % [Hz] %[output:6581bf4e]
 %[text] La constante de tiempo en un filtro pasa-bajos es:
 tau = 1/(2*pi*fc)   % [s] %[output:30e3bd4a]
 %[text] Un sensor de tipo encoder puede modelarse como un filtro de primer orden de la siguiente manera:
-Ts_sensor = 0.01;        % [s] 50 Hz, medicion retenida para el lazo
+Ts_sensor = 0.01;        % [s] 100 Hz, medicion retenida para el lazo
 tau_sensor = 0.001;       % [s] dinamica del sensor
-sigma_yc = 7.8e-5;       % [m] desviación estándar = 0.078 mm
-q_yc = 3.3e-5;           % [m] cuantizacion = 0.033 mm
+sigma_yc = 8.08e-5;      % [m] desviación estándar = 0.081 mm
+q_yc = 3.42e-5;          % [m] cuantizacion = 0.034 mm
 %[text] ## Sensor de Vm
 %[text] Para realimentar hacia el observador
 % Sensor / medicion de tension aplicada al motor

@@ -1,5 +1,7 @@
 # Steering by Wire - Control y Simulacion
 
+Proyecto final para la cátedra Control y Sistemas de la carrera de Ingeniería en Mecatrónica.
+
 Proyecto de modelado, control y validacion de un sistema de direccion por cable (*steering by wire*) para el lado de actuacion de las ruedas. El trabajo incluye el modelo dinamico en espacio de estados, el diseno de control LQR, observador de estados, modelado de sensor de cremallera, perturbaciones, validacion del actuador y pruebas con visualizacion en Unity.
 
 ## Estructura del proyecto
