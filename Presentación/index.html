@@ -1,0 +1,883 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Steering by Wire | Presentación</title>
+  <style>
+    :root {
+      --bg0: #f5fbff;
+      --bg1: #eaf5fb;
+      --panel: rgba(255, 255, 255, 0.84);
+      --panel2: rgba(8, 49, 73, 0.055);
+      --text: #08202f;
+      --muted: #46616f;
+      --cyan: #0077b6;
+      --green: #008f7a;
+      --orange: #c46b00;
+      --red: #c72c48;
+      --line: rgba(0, 119, 182, 0.14);
+      --shadow: 0 22px 70px rgba(20, 74, 106, 0.18);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 72% 20%, rgba(0, 119, 182, 0.18), transparent 30%),
+        radial-gradient(circle at 22% 86%, rgba(0, 143, 122, 0.13), transparent 32%),
+        linear-gradient(135deg, var(--bg0), var(--bg1) 52%, #ffffff);
+      color: var(--text);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: radial-gradient(circle at center, black, transparent 78%);
+      opacity: 0.22;
+      pointer-events: none;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(0, 119, 182, 0.08), transparent 18%, transparent 82%, rgba(0, 143, 122, 0.08));
+      pointer-events: none;
+    }
+
+    .deck {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      perspective: 1200px;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 22px;
+      padding: clamp(28px, 4vw, 58px);
+      opacity: 0;
+      transform: translateX(42px) scale(0.985);
+      transition: opacity 360ms ease, transform 480ms cubic-bezier(.2,.8,.2,1);
+      pointer-events: none;
+    }
+
+    .slide.active {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .slide.prev {
+      transform: translateX(-42px) scale(0.985);
+    }
+
+    .kicker {
+      color: var(--cyan);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-size: clamp(0.72rem, 1.0vw, 0.92rem);
+      font-weight: 700;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    h1 {
+      max-width: 1120px;
+      font-size: clamp(3.0rem, 7.4vw, 7.8rem);
+      line-height: 0.92;
+      letter-spacing: -0.045em;
+    }
+
+    h2 {
+      font-size: clamp(2.0rem, 4.6vw, 4.7rem);
+      line-height: 0.98;
+      letter-spacing: -0.035em;
+    }
+
+    h3 {
+      font-size: clamp(1.15rem, 2vw, 1.65rem);
+      line-height: 1.12;
+      color: var(--text);
+    }
+
+    .subtitle {
+      max-width: 920px;
+      color: var(--muted);
+      font-size: clamp(1.05rem, 1.65vw, 1.58rem);
+      line-height: 1.42;
+    }
+
+    .layout-2 {
+      display: grid;
+      grid-template-columns: 1.04fr 0.96fr;
+      gap: clamp(24px, 3vw, 48px);
+      align-items: center;
+      min-height: 0;
+    }
+
+    .layout-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+      align-items: stretch;
+    }
+
+    .panel {
+      background: linear-gradient(180deg, var(--panel), rgba(10, 22, 34, 0.68));
+      border: 1px solid rgba(160, 231, 255, 0.18);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .media {
+      width: 100%;
+      min-height: 0;
+      padding: clamp(14px, 1.5vw, 22px);
+      display: grid;
+      place-items: center;
+    }
+
+    .media img {
+      display: block;
+      max-width: 100%;
+      max-height: 68vh;
+      object-fit: contain;
+      filter: drop-shadow(0 20px 36px rgba(0, 0, 0, 0.34));
+    }
+
+    .media.tight img { max-height: 56vh; }
+    .media.wide img { max-height: 50vh; }
+    .media.full img { max-height: 74vh; }
+
+    .image-pair {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 22px;
+    }
+
+    .caption {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.95rem;
+      text-align: center;
+    }
+
+    .cards {
+      display: grid;
+      gap: 14px;
+    }
+
+    .card {
+      padding: 20px 22px;
+      background: var(--panel2);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 18px;
+    }
+
+    .card strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--green);
+      font-size: clamp(1.0rem, 1.5vw, 1.25rem);
+    }
+
+    .card span, .card p {
+      color: var(--muted);
+      font-size: clamp(0.95rem, 1.25vw, 1.15rem);
+      line-height: 1.38;
+    }
+
+    .formula {
+      padding: 18px 22px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.64);
+      border: 1px solid rgba(0, 119, 182, 0.20);
+      font-family: "Cambria Math", "Times New Roman", serif;
+      font-size: clamp(1.15rem, 2vw, 1.85rem);
+      line-height: 1.5;
+      color: #08202f;
+      box-shadow: inset 0 0 28px rgba(0, 119, 182, 0.05);
+    }
+
+    .formula small {
+      display: block;
+      color: var(--muted);
+      font-family: Inter, sans-serif;
+      font-size: 0.58em;
+      margin-top: 8px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .chip {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 119, 182, 0.24);
+      background: rgba(0, 119, 182, 0.075);
+      color: #06334a;
+      font-weight: 650;
+      font-size: clamp(0.78rem, 1vw, 0.95rem);
+      white-space: nowrap;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .metric {
+      padding: 18px 20px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.68);
+      border: 1px solid rgba(0, 119, 182, 0.12);
+    }
+
+    .metric b {
+      display: block;
+      color: var(--cyan);
+      font-size: clamp(1.35rem, 2.4vw, 2.1rem);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 0.98rem;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 12px;
+      counter-reset: item;
+    }
+
+    .step {
+      position: relative;
+      padding: 17px 18px 17px 58px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.66);
+      border: 1px solid rgba(0, 119, 182, 0.12);
+      color: var(--muted);
+      font-size: clamp(0.94rem, 1.35vw, 1.16rem);
+    }
+
+    .step::before {
+      counter-increment: item;
+      content: counter(item);
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--cyan);
+      color: #05202b;
+      font-weight: 800;
+    }
+
+    .hero-line {
+      height: 3px;
+      width: min(580px, 52vw);
+      background: linear-gradient(90deg, var(--cyan), var(--green), transparent);
+      border-radius: 999px;
+      margin: 26px 0 8px;
+    }
+
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: rgba(8, 32, 47, 0.58);
+      font-size: 0.9rem;
+    }
+
+    .progress-wrap {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 5px;
+      background: rgba(8, 49, 73, 0.10);
+      z-index: 50;
+    }
+
+    .progress {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, var(--cyan), var(--green));
+      transition: width 280ms ease;
+    }
+
+    .nav-hint {
+      position: fixed;
+      right: 22px;
+      bottom: 18px;
+      z-index: 55;
+      color: rgba(8, 32, 47, 0.55);
+      font-size: 0.82rem;
+      pointer-events: none;
+    }
+
+    .accent {
+      color: var(--cyan);
+    }
+
+    .warn {
+      color: var(--orange);
+    }
+
+    .small {
+      font-size: clamp(0.9rem, 1.12vw, 1.05rem);
+      color: var(--muted);
+      line-height: 1.38;
+    }
+
+    .one-line {
+      white-space: nowrap;
+    }
+
+    .cover-slide {
+      padding: clamp(26px, 3.6vw, 52px);
+      grid-template-rows: auto 1fr auto;
+      background:
+        radial-gradient(circle at 70% 16%, rgba(0, 119, 182, 0.12), transparent 24%),
+        radial-gradient(circle at 28% 72%, rgba(0, 143, 122, 0.10), transparent 28%);
+    }
+
+    .cover-top,
+    .cover-meta {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      font-size: clamp(1.0rem, 1.7vw, 1.65rem);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #172d3b;
+    }
+
+    .cover-top span:last-child {
+      letter-spacing: 0.16em;
+    }
+
+    .cover-main {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 0.78fr);
+      align-items: center;
+      gap: clamp(18px, 4vw, 70px);
+      min-height: 0;
+    }
+
+    .cover-main img {
+      width: 100%;
+      max-height: 58vh;
+      object-fit: contain;
+      filter: drop-shadow(0 24px 34px rgba(8, 32, 47, 0.20));
+    }
+
+    .cover-title {
+      align-self: end;
+    }
+
+    .cover-title .subject {
+      margin-bottom: 16px;
+      color: #172d3b;
+      letter-spacing: 0.36em;
+      text-transform: uppercase;
+      font-size: clamp(0.95rem, 1.8vw, 1.9rem);
+    }
+
+    .cover-title h1 {
+      font-size: clamp(3.2rem, 8.4vw, 9.8rem);
+      line-height: 0.82;
+      letter-spacing: 0.04em;
+      color: #02080d;
+      text-transform: uppercase;
+    }
+
+    .cover-teachers {
+      justify-self: end;
+      align-self: end;
+      padding-bottom: 0.35em;
+      font-size: clamp(1.0rem, 1.55vw, 1.55rem);
+      line-height: 1.2;
+      letter-spacing: 0.02em;
+      color: #172d3b;
+      font-weight: 700;
+    }
+
+    .cover-meta {
+      align-items: flex-end;
+      color: rgba(23, 45, 59, 0.64);
+      font-size: clamp(0.78rem, 1vw, 1.0rem);
+      letter-spacing: 0.08em;
+      text-transform: none;
+    }
+
+    @media (max-width: 900px) {
+      .slide {
+        overflow: auto;
+        padding: 24px;
+      }
+      .layout-2,
+      .layout-3,
+      .image-pair,
+      .cover-main {
+        grid-template-columns: 1fr;
+      }
+      .media img { max-height: 46vh; }
+      .cover-teachers { justify-self: start; }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck" id="deck">
+    <section class="slide cover-slide active">
+      <header class="cover-top">
+        <span>Rodrigo Aleo - 12106</span>
+        <span>2026</span>
+      </header>
+      <div class="cover-main">
+        <img src="figs/Steering by wire caratula.jpg" alt="Sistema Steering by Wire">
+        <div class="cover-teachers">
+          Dr. Ing. Hernán Garrido<br>
+          Ing. Mauricio Caceres
+        </div>
+      </div>
+      <footer class="cover-meta">
+        <div class="cover-title">
+          <div class="subject">Control y Sistemas</div>
+          <h1>Proyecto Final</h1>
+        </div>
+        <span>Steering by Wire</span>
+      </footer>
+    </section>
+
+    <section class="slide">
+      <header>
+        <div class="kicker">Punto de partida</div>
+        <h2>Dirección tradicional</h2>
+      </header>
+      <div class="layout-2">
+        <div class="media panel">
+          <img src="../Informe_CyS_SteeringByWire/figs/Sistema de direccionamiento convencional.png" alt="Sistema de direccionamiento convencional">
+        </div>
+        <div class="cards">
+          <div class="card"><strong>Conexión mecánica</strong><span>El volante transmite el movimiento hacia la cremallera mediante una columna de dirección.</span></div>
+          <div class="card"><strong>Referencia física directa</strong><span>La sensación de dirección y el movimiento de ruedas están acoplados por elementos mecánicos.</span></div>
+          <div class="card"><strong>Limitación tecnológica</strong><span>La arquitectura condiciona el diseño de asistencia, autonomía, seguridad activa y empaquetamiento.</span></div>
+        </div>
+      </div>
+      <footer class="footer"><span>01</span><span>Modelo tradicional</span></footer>
+    </section>
+
+    <section class="slide">
+      <header>
+        <div class="kicker">Motivación</div>
+        <h2>Dirección por cable</h2>
+      </header>
+      <div class="layout-2">
+        <div>
+          <p class="subtitle">El sistema reemplaza la conexión mecánica por sensores, controladores, actuadores eléctricos y comunicación.</p>
+          <br>
+          <div class="chips">
+            <span class="chip">Seguridad activa</span>
+            <span class="chip">Control de estabilidad</span>
+            <span class="chip">Asistencia avanzada</span>
+            <span class="chip">Conducción autónoma</span>
+            <span class="chip">Arquitectura flexible</span>
+          </div>
+        </div>
+        <div class="media panel">
+          <img src="../Informe_CyS_SteeringByWire/figs/SbW Modelo Sencillo.png" alt="Modelo sencillo de Steering by Wire">
+        </div>
+      </div>
+      <footer class="footer"><span>02</span><span>Ventajas y motivación</span></footer>
+    </section>
+
+    <section class="slide">
+      <header>
+        <div class="kicker">Planta propuesta</div>
+        <h2>Motor · husillo de bolas · cremallera · ruedas</h2>
+      </header>
+      <div class="layout-2">
+        <div class="media panel full">
+          <img src="../Informe_CyS_SteeringByWire/figs/Esquema_planta.png" alt="Esquema de planta">
+        </div>
+        <div class="cards">
+          <div class="formula">
+            x = [ i<sub>m</sub>, θ<sub>m</sub>, ω<sub>m</sub>, y<sub>c</sub>, v<sub>c</sub>, δ, ψ ]<sup>T</sup>
+            <small>Estados eléctricos, mecánicos y de dirección.</small>
+          </div>
+          <div class="formula">
+            ẋ = A x + B<sub>c</sub> u + B<sub>d</sub>d
+            <small>Modelo lineal nominal en espacio de estados.</small>
+          </div>
+        </div>
+      </div>
+      <footer class="footer"><span>03</span><span>Modelado de planta</span></footer>
+    </section>
+
+    <section class="slide">
+      <header>
+        <div class="kicker">Parámetros clave</div>
+        <h2>Arquitectura física adoptada</h2>
+      </header>
+      <div class="layout-3">
+        <div class="metric"><b>48 V</b><span>Bus de alimentación del motor seleccionado.</span></div>
+        <div class="metric"><b>32 mm/rev</b><span>Avance del husillo de bolas.</span></div>
+        <div class="metric"><b>140 mm</b><span>Carrera lineal de cremallera usada para el sensor.</span></div>
+        <div class="metric"><b>35°</b><span>Ángulo máximo de rueda usado como referencia de desempeño.</span></div>
+        <div class="metric"><b>7 estados</b><span>Modelo nominal para control y observación.</span></div>
+        <div class="metric"><b>±48 V</b><span>Saturación física de la tensión aplicada.</span></div>
+      </div>
+      <footer class="footer"><span>04</span><span>Variables principales para explicar oralmente</span></footer>
+    </section>
+
+    <section class="slide">
+      <header>
+        <div class="kicker">Alcance</div>
+        <h2>Limitaciones del modelo</h2>
+      </header>
+      <div class="layout-2">
+        <div class="cards">
+          <div class="card"><strong>Modelo nominal lineal</strong><span>La representación en espacio de estados se usa para diseñar LQR y observador.</span></div>
+          <div class="card"><strong>No se modela redundancia</strong><span>Se omiten canales redundantes de sensores, actuadores, cableado y alimentación.</span></div>
+          <div class="card"><strong>Neumático simplificado</strong><span>El torque autoalineante se aproxima para estudiar perturbaciones principales.</span></div>
+          <div class="card"><strong>Parámetros mecánicos ajustados</strong><span>Se tomaron referencias de literatura y datasheets, no mediciones de un prototipo físico.</span></div>
+        </div>
+        <div class="media panel">
+          <img src="../Informe_CyS_SteeringByWire/figs/Simulink_final.png" alt="Modelo final en Simulink">
+        </div>
+      </div>
+      <footer class="footer"><span>05</span><span>Qué queda dentro y fuera del modelo</span></footer>
+    </section>
+
+    <section class="slide">
+      <header>
+        <div class="kicker">Análisis estructural</div>
+        <h2>Polos, controlabilidad y observabilidad</h2>
+      </header>
+      <div class="layout-2">
+        <div class="cards">
+          <div class="formula">
+            det(sI − A) = 0
+            <small>Dinámica natural de la planta nominal.</small>
+          </div>
+          <div class="formula">
+            rank(𝒞) = 7 &nbsp;&nbsp; · &nbsp;&nbsp; rank(𝒪) = 7
+            <small>Controlable desde V<sub>m</sub> y observable desde y<sub>c</sub>.</small>
+          </div>
+        </div>
+        <div class="panel card">
+          <h3>Polos principales</h3>
+          <br>
+          <div class="chips">
+            <span class="chip">−0.4 ± 8537.1i</span>
+            <span class="chip">−141.4 ± 943.8i</span>
+            <span class="chip">0</span>
+            <span class="chip">−75.2 ± 286.3i</span>
+          </div>
+          <br>
+          <p class="small">El polo cercano a cero refleja un modo integrador. Los pares complejos explican modos oscilatorios eléctricos y mecánicos.</p>
+        </div>
+      </div>
+      <footer class="footer"><span>06</span><span>Base para control y observación</span></footer>
+    </section>
+
+    <section class="slide">
+      <header>
+        <div class="kicker">Control</div>
+        <h2>Controlador LQR</h2>
+      </header>
+      <div class="layout-2">
+        <div class="cards">
+          <div class="formula">
+            u(t) = −K<sub>LQR</sub> x(t) + k<sub>r</sub> r(t)
+            <small>La señal de control se interpreta como tensión deseada en el motor.</small>
+          </div>
+          <div class="formula">
+            u(t) ∈ [−48, 48] V
+            <small>La saturación representa la limitación física del actuador.</small>
+          </div>
+          <div class="chips">
+            <span class="chip">Seguimiento de δ</span>
+            <span class="chip">Penalización de tensión</span>
+            <span class="chip">Respuesta rápida</span>
+          </div>
+        </div>
+        <div class="media panel wide">
+          <img src="../Informe_CyS_SteeringByWire/figs/bloque_LQR.png" alt="Bloque LQR">
+        </div>
+      </div>
+      <footer class="footer"><span>07</span><span>Justificación: control multivariable con esfuerzo limitado</span></footer>
+    </section>
+
+    <section class="slide">
+      <header>
+        <div class="kicker">Actuador</div>
+        <h2>Motor seleccionado</h2>
+      </header>
+      <div class="layout-2">
+        <div class="metric-grid">
+          <div class="metric"><b>Mosrac U13060</b><span>Motor de torque usado como referencia.</span></div>
+          <div class="metric"><b>48 V</b><span>Tensión máxima del bus.</span></div>
+          <div class="metric"><b>70 A</b><span>Corriente pico admisible.</span></div>
+          <div class="metric"><b>800 rpm</b><span>Velocidad máxima de referencia.</span></div>
+        </div>
+        <div class="media panel">
+          <img src="../Informe_CyS_SteeringByWire/figs/bloque_Actuador.png" alt="Bloque de actuador">
+        </div>
+      </div>
+      <footer class="footer"><span>08</span><span>Validación por límites de tensión, corriente, torque y velocidad</span></footer>
+    </section>
+
+    <section class="slide">
+      <header>
+        <div class="kicker">Medición</div>
+        <h2>Sensor de cremallera</h2>
+      </header>
+      <div class="layout-2">
+        <div class="cards">
+          <div class="card"><strong>Variable sensada</strong><span>Posición lineal de cremallera y<sub>c</sub>(t).</span></div>
+          <div class="card"><strong>Referencia</strong><span>Melexis MLX90513, sensor inductivo automotriz de posición.</span></div>
+          <div class="formula">
+            y<sub>c,s</sub> = Q{ ZOH[ H<sub>s</sub>(s)y<sub>c</sub> ] + n<sub>y</sub> }
+            <small>Filtro, retención, ruido y cuantización.</small>
+          </div>
+        </div>
+        <div class="media panel">
+          <img src="../Informe_CyS_SteeringByWire/figs/bloque_Sensor.png" alt="Bloque sensor de cremallera">
+        </div>
+      </div>
+      <footer class="footer"><span>09</span><span>Se evita depender de un encoder absoluto en el eje del motor</span></footer>
+    </section>
+
+    <section class="slide">
+      <header>
+        <div class="kicker">Estimación</div>
+        <h2>Observador de Kalman</h2>
+      </header>
+      <div class="layout-2">
+        <div class="cards">
+          <div class="formula">
+            ẋ̂ = A x̂ + B<sub>c</sub>u + L(y<sub>s</sub> − C<sub>s</sub>x̂)
+            <small>Reconstrucción de estados para realimentación completa.</small>
+          </div>
+          <div class="card"><strong>Por qué es necesario</strong><span>El LQR requiere todos los estados, pero físicamente solo se mide y<sub>c</sub>.</span></div>
+          <div class="card"><strong>Resultado esperado</strong><span>Estimar δ(t) sin colocar un sensor directo en la rueda.</span></div>
+        </div>
+        <div class="media panel">
+          <img src="../Informe_CyS_SteeringByWire/figs/bloque_Observador.png" alt="Bloque observador">
+        </div>
+      </div>
+      <footer class="footer"><span>10</span><span>Medición parcial, estados estimados</span></footer>
+    </section>
+
+    <section class="slide">
+      <header>
+        <div class="kicker">Perturbaciones</div>
+        <h2>Fricción y torque autoalineante</h2>
+      </header>
+      <div class="layout-2">
+        <div class="cards">
+          <div class="card"><strong>Fricciones F<sub>f</sub> y T<sub>f</sub></strong><span>Implementadas con arcotangente para evitar discontinuidades idealizadas.</span></div>
+          <div class="card"><strong>Torque autoalineante T<sub>a</sub></strong><span>Perturbación dominante asociada a la interacción neumático-suelo.</span></div>
+          <div class="formula">
+            F<sub>f</sub> ≈ F<sub>f0</sub> · atan(kv) &nbsp;&nbsp; · &nbsp;&nbsp; T<sub>f</sub> ≈ T<sub>f0</sub> · atan(kψ)
+            <small>Transición suave entre signos.</small>
+          </div>
+        </div>
+        <div class="media panel">
+          <img src="../Informe_CyS_SteeringByWire/figs/fuerza_resultante_lateral.png" alt="Fuerza resultante lateral">
+        </div>
+      </div>
+      <footer class="footer"><span>11</span><span>Perturbaciones para exigir el sistema</span></footer>
+    </section>
+
+    <section class="slide">
+      <header>
+        <div class="kicker">Resultados</div>
+        <h2>Seguimiento de referencia trapezoidal</h2>
+      </header>
+      <div class="image-pair">
+        <div class="media panel">
+          <img src="../Informe_CyS_SteeringByWire/figs/rtaDelta_entradaTrapezoidal.png" alt="Respuesta delta completa">
+        </div>
+        <div class="media panel">
+          <img src="../Informe_CyS_SteeringByWire/figs/rtaDelta_entradaTrapezoidalZoom.png" alt="Detalle de respuesta delta">
+        </div>
+      </div>
+      <div class="chips">
+        <span class="chip">Referencia de 35°</span>
+        <span class="chip">Entrada trapezoidal</span>
+        <span class="chip">Error estacionario pequeño por perturbación constante</span>
+      </div>
+      <footer class="footer"><span>12</span><span>La entrada trapezoidal reduce exigencias de corriente</span></footer>
+    </section>
+
+    <section class="slide">
+      <header>
+        <div class="kicker">Resultados</div>
+        <h2>Perturbaciones y esfuerzo disponible</h2>
+      </header>
+      <div class="layout-2">
+        <div class="media panel">
+          <img src="../Informe_CyS_SteeringByWire/figs/perturbaciones_entradaTrapezoidal.png" alt="Perturbaciones">
+        </div>
+        <div class="media panel">
+          <img src="../Informe_CyS_SteeringByWire/figs/Esfuerzo_entradaTrapezoidal.png" alt="Esfuerzo aplicado">
+        </div>
+      </div>
+      <footer class="footer"><span>13</span><span>T<sub>a</sub> domina la maniobra; el actuador genera esfuerzo suficiente</span></footer>
+    </section>
+
+    <section class="slide">
+      <header>
+        <div class="kicker">Resultados</div>
+        <h2>Validación del motor</h2>
+      </header>
+      <div class="layout-2">
+        <div class="media panel full">
+          <img src="../Informe_CyS_SteeringByWire/figs/motor_entradaTrapezoidal.png" alt="Variables del motor">
+        </div>
+        <div class="metric-grid">
+          <div class="metric"><b>48 V</b><span>Tensión limitada por saturación.</span></div>
+          <div class="metric"><b>42.6 A</b><span>Pico de corriente, menor que 70 A.</span></div>
+          <div class="metric"><b>13.5 A RMS</b><span>Menor que el límite continuo de 30 A.</span></div>
+          <div class="metric"><b>780 rpm</b><span>Dentro del límite de 800 rpm.</span></div>
+        </div>
+      </div>
+      <footer class="footer"><span>14</span><span>La consigna trapezoidal evita sobrecorrientes del escalón</span></footer>
+    </section>
+
+    <section class="slide">
+      <header>
+        <div class="kicker">Caso particular</div>
+        <h2>Alta velocidad: 100 km/h</h2>
+      </header>
+      <div class="layout-2">
+        <div class="media panel full">
+          <img src="../Informe_CyS_SteeringByWire/figs/rta_100kmh.png" alt="Respuesta a 100 km/h">
+        </div>
+        <div class="cards">
+          <div class="card"><strong>Objetivo</strong><span>Interpretar el comportamiento del modelo de torque autoalineante fuera de la zona nominal.</span></div>
+          <div class="card"><strong>Lectura física</strong><span>A grandes ángulos de deriva, el modelo representa pérdida de capacidad restauradora.</span></div>
+          <div class="card"><strong>Resultado</strong><span>T<sub>a</sub> cae prácticamente a cero y δ converge sin error estacionario apreciable.</span></div>
+        </div>
+      </div>
+      <footer class="footer"><span>15</span><span>No se adopta como caso nominal de validación</span></footer>
+    </section>
+
+    <section class="slide">
+      <header>
+        <div class="kicker">Validación cualitativa</div>
+        <h2>Simulink + Unity por UDP</h2>
+      </header>
+      <div class="layout-2">
+        <div class="cards">
+          <div class="step">Simulink calcula δ(t) en tiempo real.</div>
+          <div class="step">La señal se envía a Unity mediante UDP.</div>
+          <div class="step">Unity aplica δ directamente a las ruedas delanteras.</div>
+          <div class="step">El vehículo gira por interacción física rueda-suelo.</div>
+        </div>
+        <div class="media panel full">
+          <img src="../Informe_CyS_SteeringByWire/figs/Unity.png" alt="Validación en Unity">
+        </div>
+      </div>
+      <footer class="footer"><span>16</span><span>Prueba visual para inputs reales de conducción</span></footer>
+    </section>
+
+    <section class="slide">
+      <header>
+        <div class="kicker">Cierre</div>
+        <h2>Conclusiones</h2>
+      </header>
+      <div class="layout-2">
+        <div class="cards">
+          <div class="card"><strong>Modelo validado</strong><span>La planta permite diseñar control, observador y supervisar límites físicos del actuador.</span></div>
+          <div class="card"><strong>Control funcional</strong><span>El LQR logra seguimiento rápido con saturación realista de tensión.</span></div>
+          <div class="card"><strong>Motor admisible</strong><span>Con referencia trapezoidal, corriente, torque y velocidad quedan dentro de límites.</span></div>
+          <div class="card"><strong>Trabajo futuro</strong><span>HIL, control discretizado, parámetros mecánicos medidos y perturbaciones más realistas.</span></div>
+        </div>
+        <div class="media panel">
+          <img src="../Informe_CyS_SteeringByWire/figs/ma_example.png" alt="Torque autoalineante">
+        </div>
+      </div>
+      <footer class="footer"><span>17</span><span>Preguntas</span></footer>
+    </section>
+  </main>
+
+  <div class="progress-wrap"><div class="progress" id="progress"></div></div>
+  <div class="nav-hint">Click / ← → / Espacio</div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const progress = document.getElementById("progress");
+    let index = 0;
+
+    function show(next) {
+      const clamped = Math.max(0, Math.min(slides.length - 1, next));
+      if (clamped === index) return;
+      slides[index].classList.remove("active");
+      slides[index].classList.toggle("prev", clamped > index);
+      index = clamped;
+      slides[index].classList.remove("prev");
+      slides[index].classList.add("active");
+      update();
+    }
+
+    function update() {
+      progress.style.width = `${((index + 1) / slides.length) * 100}%`;
+      document.title = `(${index + 1}/${slides.length}) Steering by Wire`;
+    }
+
+    document.addEventListener("keydown", (event) => {
+      const key = event.key;
+      if (key === "ArrowRight" || key === " " || key === "PageDown") {
+        event.preventDefault();
+        show(index + 1);
+      }
+      if (key === "ArrowLeft" || key === "PageUp") {
+        event.preventDefault();
+        show(index - 1);
+      }
+      if (key === "Home") show(0);
+      if (key === "End") show(slides.length - 1);
+    });
+
+    document.addEventListener("click", (event) => {
+      if (event.target.closest("a")) return;
+      const half = window.innerWidth / 2;
+      show(event.clientX >= half ? index + 1 : index - 1);
+    });
+
+    update();
+  </script>
+</body>
+</html>

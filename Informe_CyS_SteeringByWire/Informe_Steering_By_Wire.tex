@@ -106,7 +106,7 @@ Cabe destacar que en estos sistemas es de suma importancia la redundancia de los
 El sistema de direccionamiento de las ruedas consiste en un motor eléctrico que acciona la cremallera mediante una transmisión equivalente basada en husillo de bolas. En este tipo de actuador, la rotación del motor se convierte en desplazamiento lineal de la cremallera, la cual acciona las rótulas que permiten la rotación de las ruedas. En la figura \ref{fig:esquema_planta} puede verse una representación simplificada del sistema:
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.35\linewidth]{figs/Esquema_planta.png}
+    \includegraphics[width=0.3\linewidth]{figs/Esquema_planta.png}
     \caption{Esquema simplificado del sistema de dirección del tren delantero.}
     \label{fig:esquema_planta}
 \end{figure}
@@ -115,7 +115,7 @@ Para formular el modelo se adopta la siguiente notación: $i_m(t)$ es la corrien
 
 La ecuación eléctrica del motor se obtiene aplicando la ley de tensiones de Kirchhoff:
 \begin{equation}
-L_m \cdot \frac{di_m}{dt} = -R_m \cdot i_m(t) - K_e \cdot \omega_m(t) + V_m(t)
+L_m \, \frac{di_m}{dt} = -R_m \, i_m(t) - K_e \, \omega_m(t) + V_m(t)
 \label{ec_electrica}
 \end{equation}
 
@@ -128,19 +128,19 @@ De esta forma, la relación cinemática ideal entre el eje motor y la cremallera
 
 La dinámica mecánica se obtiene aplicando las leyes de Newton al eje motor, a la cremallera y al giro de la rueda. Para el eje motor:
 \begin{equation}
-J_m \cdot \frac{d\omega_m(t)}{dt} = T_m(t) - B_m \cdot \omega_m(t) - K_{a} \left[ \theta_m(t) - \frac{y_c(t)}{r_p} \right]
+J_m \, \frac{d\omega_m(t)}{dt} = T_m(t) - B_m \, \omega_m(t) - K_{a} \left[ \theta_m(t) - \frac{y_c(t)}{r_p} \right]
 \label{ec_motor}
 \end{equation}
 
 La ecuación dinámica de la cremallera es:
 \begin{equation}
-M_{cr} \cdot \frac{dv_c(t)}{dt} = -\frac{2 K_f}{r_l} \left[ \frac{y_c(t)}{r_l} - \delta(t) \right] - F_f(t) - B_{cr} \cdot v_c(t) + \frac{K_a}{r_p} \left[ \theta_m(t) - \frac{y_c(t)}{r_p} \right]
+M_{cr} \, \frac{dv_c(t)}{dt} = -\frac{2 K_f}{r_l} \left[ \frac{y_c(t)}{r_l} - \delta(t) \right] - F_f(t) - B_{cr} \, v_c(t) + \frac{K_a}{r_p} \left[ \theta_m(t) - \frac{y_c(t)}{r_p} \right]
 \label{ec_cremallera}
 \end{equation}
 
 Finalmente, la ecuación dinámica de cada rueda está dada por:
 \begin{equation}
-J_f \cdot \frac{d\psi(t)}{dt} = -K_f \left[ \delta(t) - \frac{y_c(t)}{r_l} \right] - B_f \cdot \psi(t) - T_f(t) - T_a(t)
+J_f \, \frac{d\psi(t)}{dt} = -K_f \left[ \delta(t) - \frac{y_c(t)}{r_l} \right] - B_f \, \psi(t) - T_f(t) - T_a(t)
 \label{ec_rueda}
 \end{equation}
 
@@ -190,13 +190,13 @@ Teniendo en cuenta las ecuaciones \ref{ec_electrica}, \ref{ec_motor}, \ref{ec_cr
 \begin{equation}
 \left\{
 \begin{aligned}
-\frac{di_m(t)}{dt} &= \frac{1}{L_m} \cdot  \left[-R_m \cdot i_m(t) - K_e \cdot \omega_m(t) + V_m(t) \right] \\
+\frac{di_m(t)}{dt} &= \frac{1}{L_m} \,  \left[-R_m \, i_m(t) - K_e \, \omega_m(t) + V_m(t) \right] \\
 \frac{d\theta_m(t)}{dt} &= \omega_m(t) \\
-\frac{d\omega_m(t)}{dt} &= \frac{1}{J_m} \cdot \left\{T_m(t) - B_m \cdot \omega_m(t) - K_{a} \left[ \theta_m(t) - \frac{y_c(t)}{r_p} \right] \right\} \\
+\frac{d\omega_m(t)}{dt} &= \frac{1}{J_m} \, \left\{T_m(t) - B_m \, \omega_m(t) - K_{a} \left[ \theta_m(t) - \frac{y_c(t)}{r_p} \right] \right\} \\
 \frac{dy_c(t)}{dt} &= v_c(t) \\
-\frac{dv_c(t)}{dt} &= \frac{1}{M_{cr}} \cdot \left\{ -\frac{2 K_f}{r_l} \left[ \frac{y_c(t)}{r_l} - \delta(t) \right] - F_f(t) - B_{cr} \cdot v_c(t) + \frac{K_a}{r_p} \left[ \theta_m(t) - \frac{y_c(t)}{r_p} \right] \right\} \\
+\frac{dv_c(t)}{dt} &= \frac{1}{M_{cr}} \, \left\{ -\frac{2 K_f}{r_l} \left[ \frac{y_c(t)}{r_l} - \delta(t) \right] - F_f(t) - B_{cr} \, v_c(t) + \frac{K_a}{r_p} \left[ \theta_m(t) - \frac{y_c(t)}{r_p} \right] \right\} \\
 \frac{d\delta(t)}{dt} &= \psi(t) \\
-\frac{d\psi(t)}{dt} &= \frac{1}{J_f} \cdot \left\{ -K_f \left[ \delta(t) - \frac{y_c(t)}{r_l} \right] - B_f \cdot \psi(t) - T_f(t) - T_a(t) \right\}
+\frac{d\psi(t)}{dt} &= \frac{1}{J_f} \, \left\{ -K_f \left[ \delta(t) - \frac{y_c(t)}{r_l} \right] - B_f \, \psi(t) - T_f(t) - T_a(t) \right\}
 \end{aligned}
 \right.
 \label{sistema_completo}
@@ -207,8 +207,8 @@ El modelo de la planta se representa mediante un modelo lineal en espacio de est
 \begin{equation}
 \left\{
 \begin{aligned}
-\dot{x}(t) &= A \cdot x(t) + B_c \cdot u(t) + B_d \cdot d(t) ;\quad x(0) = \mathbf{0}\\
-y(t) &= C \cdot x(t)
+\dot{x}(t) &= A \, x(t) + B_c \, u(t) + B_d \, d(t) ;\quad x(0) = \mathbf{0}\\
+y(t) &= C \, x(t)
 \end{aligned}
 \right.
 \label{ec_SS}
@@ -233,11 +233,11 @@ A =
 \begin{bmatrix}
 -\frac{R_m}{L_m} & 0 & -\frac{K_e}{L_m} & 0 & 0 & 0 & 0 \\
 0 & 0 & 1 & 0 & 0 & 0 & 0 \\
-\frac{K_t}{J_m} & -\frac{K_a}{J_m} & -\frac{B_m}{J_m} & \frac{K_a}{r_p\cdot J_m} & 0 & 0 & 0 \\
+\frac{K_t}{J_m} & -\frac{K_a}{J_m} & -\frac{B_m}{J_m} & \frac{K_a}{r_p\, J_m} & 0 & 0 & 0 \\
 0 & 0 & 0 & 0 & 1 & 0 & 0 \\
-0 & \frac{K_a}{r_p \cdot M_{cr}} & 0 & -\left(\frac{2\cdot K_f}{r_l^2} + \frac{K_a}{r_p^2} \right)\cdot \frac{1}{M_{cr}} & -\frac{B_{cr}}{M_{cr}} & \frac{2\cdot K_f}{r_l \cdot M_{cr}} & 0 \\
+0 & \frac{K_a}{r_p \, M_{cr}} & 0 & -\left(\frac{2\, K_f}{r_l^2} + \frac{K_a}{r_p^2} \right)\, \frac{1}{M_{cr}} & -\frac{B_{cr}}{M_{cr}} & \frac{2\, K_f}{r_l \, M_{cr}} & 0 \\
 0 & 0 & 0 & 0 & 0 & 0 & 1 \\
-0 & 0 & 0 & \frac{K_f}{r_l\cdot J_f} & 0 & -\frac{K_f}{J_f} & -\frac{B_f}{J_f} \\
+0 & 0 & 0 & \frac{K_f}{r_l\, J_f} & 0 & -\frac{K_f}{J_f} & -\frac{B_f}{J_f} \\
 \end{bmatrix}
 \end{equation}
 
@@ -429,13 +429,13 @@ Como ambos rangos coinciden con el orden del sistema, se concluye que la planta 
 Para el diseño del controlador se ha optado por la utilización del método LQR (Linear Quadratic Regulator). Este método busca minimizar la siguiente función de costo:
 
 \begin{equation}
-J \;=\; \int_{0}^{\infty}\bigl(x(t)^{T}\cdot Q_x \cdot x(t)\;+\;u(t)^{T} \cdot Q_u \cdot u(t)\bigr)\,dt
+J \;=\; \int_{0}^{\infty}\bigl(x(t)^{T} \, Q_x \, x(t)\;+\;u(t)^{T} \, Q_u \, u(t)\bigr)\,dt
 \end{equation}
 
 La ley de control queda definida como:
 
 \begin{equation}
-u(t)\;=\;-K\,x(t)\;+\;k_{r}\,r(t)
+u(t)\;=\;-K_{lqr}\,x(t)\;+\;k_{r}\,r(t)
 \end{equation}
 
 donde $K$ se obtiene resolviendo la ecuación de Riccati asociada y $k_{r}$ ajusta la ganancia de la referencia. La señal generada por esta ley de control se interpreta como la tensión que se desea aplicar al motor. Por este motivo, en la implementación de Simulink se limita la salida del controlador a $\pm48\ \mathrm{V}$ antes de enviarla al actuador y al observador. Esta saturación representa el límite de tensión del \hyperlink{ref:mosrac-u13060}{motor Mosrac U13060 de $48\ \mathrm{V}$} adoptado para el actuador de ruedas.
@@ -488,7 +488,7 @@ K_{\mathrm{lqr}}=\mathrm{lqr}(A,B_c,Q_x,Q_u).
 Para seguimiento de referencia con el LQR puro se utiliza una ganancia de precompensación:
 
 \begin{equation}
-k_{r} = -\bigl(C_{p} \cdot (A - B_{c} \cdot K_{\mathrm{lqr}})^{-1} \cdot B_{c}\bigr)^{-1}.
+k_{r} = -\bigl(C_{p} \, (A - B_{c} \, K_{\mathrm{lqr}})^{-1} \, B_{c}\bigr)^{-1}.
 \end{equation}
 
 \begin{figure}[H]
@@ -575,7 +575,7 @@ $q_{yc}$ & $0.034\ \mathrm{mm}=3.42\times10^{-5}\ \mathrm{m}$ & intervalo de cua
 El datasheet del \hyperlink{ref:mlx90513}{Melexis MLX90513} especifica un error máximo de $\pm 0.1\%$ del fondo de escala. Considerando la carrera de cremallera utilizada en el modelo, $L_{yc}=140\ \mathrm{mm}$, dicho error equivale a:
 
 \begin{equation}
-e_{yc,\max}=0.001\,L_{yc}=0.001\cdot140\ \mathrm{mm}
+e_{yc,\max}=0.001\,L_{yc}=0.001\, 140\ \mathrm{mm}
 =0.140\ \mathrm{mm}=1.40\times10^{-4}\ \mathrm{m}.
 \end{equation}
 
@@ -585,7 +585,7 @@ Además, en la tabla de especificaciones eléctricas se indica un ruido RMS de l
 \sigma_{yc,\mathrm{RMS}}\simeq
 \frac{0.070^\circ_{\mathrm{el}}}{360^\circ_{\mathrm{el}}}\,L_{yc}
 =
-\frac{0.070^\circ_{\mathrm{el}}}{360^\circ_{\mathrm{el}}}\cdot140\ \mathrm{mm}
+\frac{0.070^\circ_{\mathrm{el}}}{360^\circ_{\mathrm{el}}}\, 140\ \mathrm{mm}
 =0.027\ \mathrm{mm}=2.72\times10^{-5}\ \mathrm{m}.
 \end{equation}
 
@@ -652,7 +652,7 @@ Para $Q$ se utiliza una matriz diagonal cuyos pesos se ajustan para ponderar la 
 \begin{equation}
 Q=\mathrm{diag}\left(
 \begin{bmatrix}
-0.1 & 0.1 & 0.1 & 0.1 & 0.1 & 0.1 & 0.1
+0.1 & 0.1 & 0.1 & 0.01 & 0.01 & 0.01 & 0.01
 \end{bmatrix}
 \right).
 \end{equation}
@@ -662,9 +662,9 @@ Aumentar los valores de $Q$ implica asumir mayor incertidumbre en el modelo de p
 Por otro lado, la covarianza de medición se obtiene directamente del modelo de ruido adoptado para el sensor. La desviación estándar equivalente del error uniforme se usa para definir:
 
 \begin{equation}
-R=\sigma_{yc}^{2}
-=\left(8.08\times10^{-5}\right)^2
-=6.53\times10^{-9}\ \mathrm{m^2}.
+R=5\,\sigma_{yc}^{2}
+=5\left(8.08\times10^{-5}\right)^2
+=3.26\times10^{-8}\ \mathrm{m^2}.
 \end{equation}
 
 El valor de $R$ aumenta cuando se considera una medición menos confiable, reduciendo el peso de la corrección basada en el sensor. En cambio, un valor menor de $R$ hace que el observador siga con mayor intensidad la medición de $y_c$, aunque también puede volverlo más sensible al ruido, a la cuantización y a la retención de orden cero.
@@ -682,7 +682,7 @@ u(t)=-K_{\mathrm{lqr}}\hat{x}(t)+k_r r(t).
     \label{fig:bloque_Observador}
 \end{figure}
 
-Cabe destacar que $\delta_{obs}$ se utiliza únicamente para comparar la estimacion con respecto al valor real.
+Cabe destacar que $\delta_{obs}$ e $y_{c-obs}$ se utilizan únicamente para comparar la estimación con respecto al valor real.
 
 \subsection{Perturbaciones}
 
@@ -781,7 +781,7 @@ Durante esta maniobra, el desplazamiento de la cremallera asociado al giro de $3
 \begin{figure}[H]
     \centering
     \includegraphics[width=1\linewidth]{figs/perturbaciones_entradaTrapezoidal.png}
-    \caption{Perturbaciones $F_f$, $T_f$ y $T_a$ durante la respuesta a referencia trapezoidal de $35^\circ$}
+    \caption{Perturbaciones $F_f(t)$, $T_f(t)$ y $T_a(t)$ ante referencia trapezoidal de $35^\circ$}
     \label{fig:perturbaciones_trapezoidal}
 \end{figure}
 
@@ -882,7 +882,7 @@ La validación adicional en Unity permitió comprobar de manera cualitativa que 
 
 Como trabajo futuro, un paso natural sería implementar el controlador discretizado y probarlo mediante una plataforma de \textit{hardware-in-the-loop}, incorporando tiempos de muestreo, comunicación y procesamiento más representativos de una implementación real. También sería conveniente ajustar con mayor precisión los parámetros mecánicos de la transmisión, la cremallera y el enlace con las ruedas, con el objetivo de obtener fuerzas y torques más cercanos a los de un actuador real. Finalmente, se debería mejorar el modelo de perturbaciones para incluir situaciones no contempladas en este estudio, como el esfuerzo requerido para girar el neumático cuando el vehículo está detenido o cuando existe rotación de la rueda sobre su propio eje sin avance longitudinal significativo.
 
-\section*{Referencias}
+\section{Referencias}
 \addcontentsline{toc}{section}{Referencias}
 
 \subsection*{Parámetros de planta, actuador, perturbaciones y sensor}
@@ -890,19 +890,19 @@ Como trabajo futuro, un paso natural sería implementar el controlador discretiz
 \begin{itemize}
     \item \hypertarget{ref:recursos-catedra}{}\textbf{Recursos aportados por la cátedra}. Repositorio con material de apoyo, consignas, guías y recursos complementarios provistos durante el cursado de la asignatura para el desarrollo del trabajo. Disponible en: \url{https://github.com/carloshernangarrido/control}.
     
-    \item \hypertarget{ref:azizul-2024}{}\textbf{M. A. Azizul, F. Ahmad, J. Karjanto, M. H. Che Hasan y S. Sulaiman, \textit{Modelling, Simulation and Testing of Steer-by-Wire System with Variable Steering Ratio Control Strategy in 14-DOF Full Vehicle Model}}. Archivo local: \texttt{Papers/Azizul - 14 dof model.pdf}. International Journal of Automotive and Mechanical Engineering, vol. 21, no. 4, pp. 11784--11808, 2024. DOI: \url{https://doi.org/10.15282/ijame.21.4.2024.5.0908}.
+    \item \hypertarget{ref:azizul-2024}{}\textbf{M. A. Azizul, F. Ahmad, J. Karjanto, M. H. Che Hasan y S. Sulaiman, \textit{Modelling, Simulation and Testing of Steer-by-Wire System with Variable Steering Ratio Control Strategy in 14-DOF Full Vehicle Model}}. \url{https://doi.org/10.15282/ijame.21.4.2024.5.0908}.
     
-    \item \hypertarget{ref:taher-2025}{}\textbf{Taher Sachit Taher et al., \textit{Improving the Performance of Steering by Wire Using a Model Predictive Controller Enhanced with Particle Swarm Optimisation}}. Archivo local: \texttt{Papers/Improving\_the\_Performance\_of\_Steering\_by\_Wire\_Usin.pdf}. Al-Khwarizmi Engineering Journal, vol. 21, no. 1, pp. 61--72, 2025. DOI: \url{https://doi.org/10.22153/kej.2025.01.002}.
+    \item \hypertarget{ref:taher-2025}{}\textbf{Taher Sachit Taher et al., \textit{Improving the Performance of Steering by Wire Using a Model Predictive Controller Enhanced with Particle Swarm Optimisation}}. \url{https://doi.org/10.22153/kej.2025.01.002}.
     
-    \item \hypertarget{ref:bosch-48v}{}\textbf{Bosch, \textit{48 V battery}}. Referencia sobre el uso de redes y baterías de $48\ \mathrm{V}$ en vehículos modernos y sistemas mild-hybrid. Disponible en: \url{https://www.bosch-mobility.com/en/solutions/batteries/48-v-battery/}.
+    \item \hypertarget{ref:bosch-48v}{}\textbf{Bosch, \textit{48 V battery}}. Referencia sobre el uso de redes y baterías de $48\ \mathrm{V}$ en vehículos modernos y sistemas mild-hybrid. \url{https://www.bosch-mobility.com/en/solutions/batteries/48-v-battery/}.
 
-    \item \hypertarget{ref:mosrac-u13060}{}\textbf{Mosrac, \textit{U130 Series Frameless Direct Drive Torque Motors}}. Catálogo web utilizado como referencia para el motor equivalente Mosrac U13060 de $48\ \mathrm{V}$. Disponible en: \url{https://www.mosrac.com/products/frameless-direct-drive-torque-motors/u130-series.html}.  
+    \item \hypertarget{ref:mosrac-u13060}{}\textbf{Mosrac, \textit{U130 Series Frameless Direct Drive Torque Motors}}. Catálogo web utilizado como referencia para el motor equivalente Mosrac U13060 de $48\ \mathrm{V}$. \url{https://www.mosrac.com/products/frameless-direct-drive-torque-motors/u130-series.html}.  
 
-    \item \hypertarget{ref:mlx90513}{}\textbf{Melexis, \textit{MLX90513 Inductive Position Sensor Interface IC}}. Sensor inductivo automotriz para medición absoluta rotativa o lineal, utilizado como referencia para la medición de posición de cremallera y para el error máximo de medición. Página del producto: \url{https://www.melexis.com/en/product/MLX90513}. Datasheet: \url{https://www.melexis.com/-/media/files/documents/datasheets/mlx90513-datasheet-melexis.pdf}.
+    \item \hypertarget{ref:mlx90513}{}\textbf{Melexis, \textit{MLX90513 Inductive Position Sensor Interface IC}}. \url{https://www.melexis.com/-/media/files/documents/datasheets/mlx90513-datasheet-melexis.pdf}.
 
-	    \item \hypertarget{ref:schaeffler-rwa}{}\textbf{Schaeffler, \textit{Road Wheel Actuator}}. Actuador de ruedas para sistemas \textit{steer-by-wire}, utilizado como referencia para comparar carrera, fuerza y velocidad lineal de cremallera. Disponible en: \url{https://www.schaeffler.us/us/products-and-solutions/powertrain-chassis/road-wheel-actuator/}.
+    \item \hypertarget{ref:schaeffler-rwa}{}\textbf{Schaeffler, \textit{Road Wheel Actuator}}. \url{https://www.schaeffler.us/us/products-and-solutions/powertrain-chassis/road-wheel-actuator/}.
 
-	    \item \hypertarget{ref:prometeo-car-controller}{}\textbf{Unity Asset Store, \textit{PROMETEO: Car Controller}}. Controlador físico de vehículo utilizado como entorno de validación visual e interactiva en Unity. Disponible en: \url{https://assetstore.unity.com/packages/tools/physics/prometeo-car-controller-209444}.
+    \item \hypertarget{ref:prometeo-car-controller}{}\textbf{Unity Asset Store, \textit{PROMETEO: Car Controller}}. \url{https://assetstore.unity.com/packages/tools/physics/prometeo-car-controller-209444}.
 \end{itemize}
 
 \subsection*{Modelo de torque autoalineante}
@@ -918,6 +918,5 @@ Como trabajo futuro, un paso natural sería implementar el controlador discretiz
 
     \item \textbf{Hsu, Laws y Gerdes, \textit{Estimation of Tire Slip Angle and Friction Limits Using Steering Torque}}. Disponible en: \url{https://www.researchgate.net/publication/224603533_Estimation_of_Tire_Slip_Angle_and_Friction_Limits_Using_Steering_Torque}. De esta referencia se utilizó la idea de que la información del torque de dirección está fuertemente vinculada con la evolución del \textit{pneumatic trail}, y que la caída de dicho \textit{trail} es un indicador físicamente consistente del acercamiento a la saturación lateral del neumático.
 \end{itemize}
-
 
 \end{document}
